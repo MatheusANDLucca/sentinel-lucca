@@ -6,7 +6,7 @@
     <title>Imprimir Controle Patrimonial - Sentinel Lucca</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <style>
         * {
@@ -82,7 +82,7 @@
         /* Títulos Principais */
         .company-header {
             text-align: center;
-            font-size: 20px;
+            font-size: 21px;
             font-weight: 900;
             letter-spacing: 0.5px;
             text-transform: uppercase;
@@ -95,10 +95,10 @@
             font-weight: 700;
             letter-spacing: 2px;
             text-transform: uppercase;
-            margin-bottom: 20px;
+            margin-bottom: 22px;
         }
 
-        /* Tabela Principal do Formulário */
+        /* Tabelas Estruturais */
         .form-table {
             width: 100%;
             border-collapse: collapse;
@@ -108,155 +108,154 @@
 
         .form-table td, .form-table th {
             border: 1px solid #000;
-            padding: 6px 10px;
-            font-size: 13px;
+            padding: 8px 12px;
+            font-size: 13.5px;
             vertical-align: top;
         }
 
-        .row-header td {
-            width: 50%;
-            font-weight: 500;
-        }
-
-        .row-subject td {
-            font-weight: 500;
-            padding: 7px 10px;
-        }
-
-        /* Tabela de Itens */
-        .items-header th {
-            background: #ffffff;
-            font-weight: 700;
-            font-size: 13px;
-            text-align: left;
-            padding: 8px 10px;
-        }
-
-        .col-patrimonio { width: 22%; text-align: center; }
-        .col-descricao { width: 55%; }
-        .col-ec { width: 8%; text-align: center; }
-        .col-valor { width: 15%; text-align: right; }
-
-        .item-row td {
-            padding: 10px 10px;
-            font-size: 12.5px;
+        /* Tabela do Cabeçalho Superior (DE / PARA / SETOR / ASSUNTO) */
+        .header-table td {
+            font-size: 13.5px;
             line-height: 1.4;
         }
 
+        .row-subject td {
+            font-size: 13.5px;
+            font-weight: 500;
+            padding: 8px 12px;
+        }
+
+        /* Tabela de Itens */
+        .items-table {
+            border-top: none;
+            margin-top: -1px;
+        }
+
+        .items-header th {
+            background: #ffffff;
+            font-weight: 800;
+            font-size: 14.5px;
+            padding: 9px 12px;
+            text-transform: uppercase;
+        }
+
+        .col-patrimonio { 
+            width: 26%; 
+            text-align: center; 
+        }
+
+        .col-descricao { 
+            width: 52%; 
+            text-align: left; 
+        }
+
+        .col-valor { 
+            width: 22%; 
+            text-align: center; 
+        }
+
+        .item-row td {
+            padding: 14px 12px;
+            line-height: 1.45;
+        }
+
         .item-patrimonio {
-            font-size: 15px;
-            font-weight: 700;
-            text-align: center;
-            padding-top: 14px !important;
+            font-size: 21px !important;
+            font-weight: 800 !important;
+            text-align: center !important;
+            letter-spacing: 0.8px;
+            vertical-align: middle !important;
         }
 
         .item-desc-title {
-            font-weight: 700;
-            font-size: 13px;
-            margin-bottom: 3px;
+            font-weight: 800;
+            font-size: 16px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            color: #000;
         }
 
         .item-subdetail {
-            font-size: 11.5px;
+            font-size: 13.5px;
+            font-weight: 500;
             color: #111;
+            line-height: 1.5;
         }
 
         .item-valor {
-            font-weight: 600;
-            text-align: right;
-            padding-top: 14px !important;
+            font-size: 19px !important;
+            font-weight: 800 !important;
+            text-align: center !important;
             white-space: nowrap;
+            vertical-align: middle !important;
         }
 
-        /* Área de Justificativa e Fornecedor */
-        .justification-cell {
-            padding: 12px 14px !important;
-            min-height: 170px;
-            font-size: 12.5px;
+        /* Área Inferior Unificada (Justificativa + Linha Divisória + Transportadora) */
+        .lower-container {
+            width: 100%;
+            border: 1.5px solid #000;
+            border-top: none;
+            margin-top: -1px;
+            background: #ffffff;
+        }
+
+        .justification-section {
+            padding: 14px 14px 12px 14px;
+            font-size: 13px;
             line-height: 1.5;
         }
 
         .justification-label {
-            font-weight: 700;
+            font-weight: 800;
+            font-size: 14px;
             margin-bottom: 6px;
         }
 
         .provider-details-block {
             margin-left: 2px;
-            margin-bottom: 15px;
         }
 
         .provider-line-p {
             font-weight: 700;
         }
 
-        .transport-highlight-line {
-            font-weight: 700;
+        .provider-trade-name {
+            font-weight: 800;
+            font-size: 14.5px;
             text-transform: uppercase;
-            margin-top: 10px;
         }
 
-        /* Bloco Inferior da Transportadora */
-        .bottom-section {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: -1px;
+        /* Linha Separadora entre Remetente/Justificativa e Transportadora */
+        .carrier-divider-line {
+            width: 100%;
+            border-top: 1.5px solid #000;
+            margin: 0;
         }
 
-        .carrier-box {
-            width: 60%;
-            border: 1.5px solid #000;
-            border-top: none;
-            padding: 12px 16px;
-            background: #fff;
+        /* Seção da Transportadora alinhada à esquerda */
+        .carrier-section-left {
+            padding: 14px 14px;
+            text-align: left;
+            background: #ffffff;
         }
 
-        .carrier-title {
-            font-size: 12.5px;
-            font-weight: 700;
+        .carrier-section-left .carrier-title {
+            font-size: 14.5px;
+            font-weight: 800;
             text-transform: uppercase;
             margin-bottom: 4px;
+            letter-spacing: 0.3px;
         }
 
-        .carrier-cnpj {
-            font-size: 15px;
-            font-weight: 900;
-            letter-spacing: 0.5px;
+        .carrier-section-left .carrier-cnpj {
+            font-size: 14.5px;
+            font-weight: 800;
             margin-bottom: 3px;
         }
 
-        .carrier-ie {
-            font-size: 12px;
+        .carrier-section-left .carrier-ie {
+            font-size: 13.5px;
             font-weight: 700;
-        }
-
-        /* Assinaturas */
-        .signatures-section {
-            margin-top: 45px;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 30px;
-        }
-
-        .signature-col {
-            width: 42%;
-            text-align: center;
-        }
-
-        .sig-line {
-            border-top: 1px solid #000;
-            margin-bottom: 5px;
-        }
-
-        .sig-name {
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-
-        .sig-role {
-            font-size: 11px;
-            color: #444;
         }
 
         /* Regras de Impressão */
@@ -314,38 +313,45 @@
         <h1 class="company-header">COOPERATIVA AGROPECUÁRIA UNAÍ LTDA</h1>
         <h2 class="doc-title">CONTROLE PATRIMONIAL</h2>
 
-        <!-- Tabela Estrutural -->
-        <table class="form-table">
-            <!-- Remetente e Destinatário -->
-            <tr class="row-header">
+        <!-- 1. Tabela do Cabeçalho (DE / PARA / SETOR / ASSUNTO) - 100% da Largura, sem caixas vazias -->
+        <table class="form-table header-table">
+            <colgroup>
+                <col style="width: 50%;">
+                <col style="width: 50%;">
+            </colgroup>
+            <tr>
                 <td><strong>DE:</strong> <span id="valSenderName">CLENIO MARCOS</span></td>
                 <td><strong>PARA:</strong> <span id="valProviderName">ARILMAQ LTDA</span></td>
             </tr>
-            <tr class="row-header">
+            <tr>
                 <td><strong>SETOR:</strong> <span id="valSenderDept">CPD</span></td>
                 <td><strong>SETOR:</strong> <span id="valRecipientDept">MANUTENÇÃO</span></td>
             </tr>
-
-            <!-- Assunto -->
             <tr class="row-subject">
                 <td colspan="2">
                     <strong>Assunto:</strong> 
-                    <span id="subjTransferencia">Transferência ( )</span>&nbsp;&nbsp;
-                    <span id="subjConserto">Conserto (X)</span>&nbsp;&nbsp;
-                    <span id="subjEmprestimo">Empréstimo ( )</span>&nbsp;&nbsp;
+                    <span id="subjTransferencia">Transferência ( )</span>&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span id="subjConserto">Conserto (X)</span>&nbsp;&nbsp;&nbsp;&nbsp;
+                    <span id="subjEmprestimo">Empréstimo ( )</span>&nbsp;&nbsp;&nbsp;&nbsp;
                     <span id="subjBaixa">Pedido de Baixa ( )</span>
                 </td>
             </tr>
+        </table>
 
-            <!-- Cabeçalhos da Tabela de Itens -->
-            <tr class="items-header">
-                <th class="col-patrimonio">N.º Patrimônio</th>
-                <th class="col-descricao">Descrição</th>
-                <th class="col-ec">EC</th>
-                <th class="col-valor">Valor</th>
-            </tr>
-
-            <!-- Linhas dos Itens (Injetadas via JS) -->
+        <!-- 2. Tabela de Itens (Sem coluna EC, fontes maiores, sem defeito) -->
+        <table class="form-table items-table">
+            <colgroup>
+                <col style="width: 26%;">
+                <col style="width: 52%;">
+                <col style="width: 22%;">
+            </colgroup>
+            <thead>
+                <tr class="items-header">
+                    <th class="col-patrimonio">N.º Patrimônio</th>
+                    <th class="col-descricao">Descrição</th>
+                    <th class="col-valor">Valor</th>
+                </tr>
+            </thead>
             <tbody id="itemsTableBody">
                 <tr class="item-row">
                     <td class="col-patrimonio item-patrimonio">00011460</td>
@@ -355,51 +361,37 @@
                         <div class="item-subdetail">No Serie: 52J16400599</div>
                         <div class="item-subdetail">Local: AGROVETERINARIA - CABECEIRAS GO</div>
                     </td>
-                    <td class="col-ec" style="text-align: center; padding-top: 14px;">Bom</td>
                     <td class="col-valor item-valor">R$ 4.198,12</td>
                 </tr>
             </tbody>
-
-            <!-- Justificativa / Observação e Dados de Envio -->
-            <tr>
-                <td colspan="4" class="justification-cell">
-                    <div class="justification-label">Justificativa/Observação:</div>
-                    <div class="provider-details-block" id="justificationBlock">
-                        <div class="provider-line-p">P/</div>
-                        <div id="justProviderTrade" style="font-weight: 700;">ARILMAQ JOÃO PINHEIRO</div>
-                        <div id="justProviderAddress">Av. Juca Cordeiro 615 loja 01 centro</div>
-                        <div id="justProviderCity">João Pinheiro - MG</div>
-                        <div id="justProviderCnpj">CNPJ: 18.278.820/0008-81</div>
-                        <div id="justProviderIe">Inscrição Estadual: 5122984710627</div>
-                        <div id="justProviderPhone">Telefone: 38 3561-1894</div>
-                        <div id="justProviderCep">CEP: 38770-000</div>
-                        <div id="justCustomNotes" style="margin-top: 6px; font-style: italic;"></div>
-                        <div id="justCarrierHighlight" class="transport-highlight-line">TRANSPORTADOS PELA VIAÇÃO SERTANEJA</div>
-                    </div>
-                </td>
-            </tr>
         </table>
 
-        <!-- Quadro Destacado Inferior da Transportadora / Frete -->
-        <div class="bottom-section">
-            <div class="carrier-box" id="carrierBox">
+        <!-- 3. Bloco Inferior Unificado (Justificativa/Destinatário + Linha + Transportadora alinhada à esquerda) -->
+        <div class="lower-container">
+            <!-- Justificativa e Dados do Destinatário -->
+            <div class="justification-section">
+                <div class="justification-label">Justificativa/Observação:</div>
+                <div class="provider-details-block" id="justificationBlock">
+                    <div class="provider-line-p">P/</div>
+                    <div id="justProviderTrade" class="provider-trade-name">ARILMAQ JOÃO PINHEIRO</div>
+                    <div id="justProviderAddress">Av. Juca Cordeiro 615 loja 01 centro</div>
+                    <div id="justProviderCity">João Pinheiro - MG</div>
+                    <div id="justProviderCnpj">CNPJ: 18.278.820/0008-81</div>
+                    <div id="justProviderIe">Inscrição Estadual: 5122984710627</div>
+                    <div id="justProviderPhone">Telefone: 38 3561-1894</div>
+                    <div id="justProviderCep">CEP: 38770-000</div>
+                    <div id="justCustomNotes" style="margin-top: 6px; font-style: italic;"></div>
+                </div>
+            </div>
+
+            <!-- Linha Separadora entre Remetente/Justificativa e Transportadora -->
+            <div class="carrier-divider-line"></div>
+
+            <!-- Dados da Transportadora (Alinhados à Esquerda) -->
+            <div class="carrier-section-left">
                 <div class="carrier-title" id="bottomCarrierName">TRANSPORTADOS PELA VIAÇÃO SERTANEJA</div>
                 <div class="carrier-cnpj" id="bottomCarrierCnpj">CNPJ: 16.505.190/0001-39</div>
                 <div class="carrier-ie" id="bottomCarrierIe">INSC. ESTADUAL: 002.090082.0071</div>
-            </div>
-        </div>
-
-        <!-- Seção de Assinaturas e Protocolo -->
-        <div class="signatures-section">
-            <div class="signature-col">
-                <div class="sig-line"></div>
-                <div class="sig-name" id="sigSenderName">CLENIO MARCOS</div>
-                <div class="sig-role">CPD / Solicitante</div>
-            </div>
-            <div class="signature-col">
-                <div class="sig-line"></div>
-                <div class="sig-name">DEPARTAMENTO DE NOTAS / FISCAL</div>
-                <div class="sig-role">Visto / Emissão de NF de Saída</div>
             </div>
         </div>
 
@@ -458,10 +450,9 @@
                 const data = await res.json();
                 const req = data.request;
 
-                document.getElementById('topReqNumber').textContent = req.request_number;
+                document.getElementById('topReqNumber').textContent = req.request_number || id;
                 document.getElementById('valSenderName').textContent = (req.sender_name || 'CLENIO MARCOS').toUpperCase();
                 document.getElementById('valSenderDept').textContent = (req.sender_department || 'CPD').toUpperCase();
-                document.getElementById('sigSenderName').textContent = (req.sender_name || 'CLENIO MARCOS').toUpperCase();
 
                 document.getElementById('valProviderName').textContent = (req.provider_name || 'ARILMAQ LTDA').toUpperCase();
                 document.getElementById('valRecipientDept').textContent = (req.recipient_department || 'MANUTENÇÃO').toUpperCase();
@@ -473,7 +464,7 @@
                 document.getElementById('subjEmprestimo').textContent = `Empréstimo (${st === 'emprestimo' ? 'X' : ' '})`;
                 document.getElementById('subjBaixa').textContent = `Pedido de Baixa (${st === 'baixa' ? 'X' : ' '})`;
 
-                // Renderizar Itens
+                // Renderizar Itens (SEM EC, com fontes maiores e SEM defeito)
                 const tbody = document.getElementById('itemsTableBody');
                 if (req.items && req.items.length > 0) {
                     tbody.innerHTML = req.items.map(it => `
@@ -484,34 +475,45 @@
                                 ${it.item_code ? `<div class="item-subdetail">Código: ${it.item_code}</div>` : ''}
                                 ${it.serial_number ? `<div class="item-subdetail">No Serie: ${it.serial_number}</div>` : ''}
                                 ${it.origin_branch ? `<div class="item-subdetail">Local: ${it.origin_branch.toUpperCase()}</div>` : ''}
-                                ${it.defect_notes ? `<div class="item-subdetail" style="font-weight:600; color:#b91c1c;">Defeito: ${it.defect_notes}</div>` : ''}
                             </td>
-                            <td class="col-ec" style="text-align: center; padding-top: 14px;">${it.ec || 'Bom'}</td>
                             <td class="col-valor item-valor">${formatCurrency(it.value)}</td>
                         </tr>
                     `).join('');
                 }
 
                 // Justificativa / Endereço do Destinatário
-                document.getElementById('justProviderTrade').textContent = (req.provider_trade_name || req.provider_name || '').toUpperCase();
-                document.getElementById('justProviderAddress').textContent = req.provider_address || '';
-                document.getElementById('justProviderCity').textContent = req.provider_city ? `${req.provider_city} - ${req.provider_state || 'MG'}` : '';
-                document.getElementById('justProviderCnpj').textContent = req.provider_cnpj ? `CNPJ: ${req.provider_cnpj}` : '';
-                document.getElementById('justProviderIe').textContent = req.provider_ie ? `Inscrição Estadual: ${req.provider_ie}` : '';
-                document.getElementById('justProviderPhone').textContent = req.provider_phone ? `Telefone: ${req.provider_phone}` : '';
-                document.getElementById('justProviderCep').textContent = req.provider_cep ? `CEP: ${req.provider_cep}` : '';
+                document.getElementById('justProviderTrade').textContent = (req.provider_trade_name || req.provider_name || 'ARILMAQ JOÃO PINHEIRO').toUpperCase();
+                document.getElementById('justProviderAddress').textContent = req.provider_address || 'Av. Juca Cordeiro 615 loja 01 centro';
+                document.getElementById('justProviderCity').textContent = req.provider_city ? `${req.provider_city} - ${req.provider_state || 'MG'}` : 'João Pinheiro - MG';
+                document.getElementById('justProviderCnpj').textContent = req.provider_cnpj ? `CNPJ: ${req.provider_cnpj}` : 'CNPJ: 18.278.820/0008-81';
+                document.getElementById('justProviderIe').textContent = req.provider_ie ? `Inscrição Estadual: ${req.provider_ie}` : 'Inscrição Estadual: 5122984710627';
+                document.getElementById('justProviderPhone').textContent = req.provider_phone ? `Telefone: ${req.provider_phone}` : 'Telefone: 38 3561-1894';
+                document.getElementById('justProviderCep').textContent = req.provider_cep ? `CEP: ${req.provider_cep}` : 'CEP: 38770-000';
                 
                 if (req.justification_notes) {
                     document.getElementById('justCustomNotes').textContent = `Obs: ${req.justification_notes}`;
+                } else {
+                    document.getElementById('justCustomNotes').textContent = '';
                 }
 
-                const carrierName = req.carrier_name || 'VIAÇÃO SERTANEJA';
-                document.getElementById('justCarrierHighlight').textContent = `TRANSPORTADOS PELA ${carrierName.toUpperCase().replace('TRANSPORTADOS PELA ', '')}`;
+                // Transportadora alinhada à esquerda
+                let carrierName = req.carrier_name;
+                let carrierCnpj = req.carrier_cnpj;
+                let carrierIe = req.carrier_ie;
 
-                // Bloco Inferior da Transportadora
-                document.getElementById('bottomCarrierName').textContent = carrierName.toUpperCase();
-                document.getElementById('bottomCarrierCnpj').textContent = req.carrier_cnpj ? `CNPJ: ${req.carrier_cnpj}` : 'CNPJ: -';
-                document.getElementById('bottomCarrierIe').textContent = req.carrier_ie ? `INSC. ESTADUAL: ${req.carrier_ie}` : 'INSC. ESTADUAL: -';
+                if (!carrierName) {
+                    carrierName = 'VIAÇÃO SERTANEJA';
+                    carrierCnpj = '16.505.190/0001-39';
+                    carrierIe = '002.090082.0071';
+                }
+
+                const cleanCarrierTitle = carrierName.toUpperCase().startsWith('TRANSPORTADOS PELA')
+                    ? carrierName.toUpperCase()
+                    : `TRANSPORTADOS PELA ${carrierName.toUpperCase()}`;
+
+                document.getElementById('bottomCarrierName').textContent = cleanCarrierTitle;
+                document.getElementById('bottomCarrierCnpj').textContent = carrierCnpj ? `CNPJ: ${carrierCnpj}` : 'CNPJ: 16.505.190/0001-39';
+                document.getElementById('bottomCarrierIe').textContent = carrierIe ? `INSC. ESTADUAL: ${carrierIe}` : 'INSC. ESTADUAL: 002.090082.0071';
 
             } catch (err) {
                 console.error('Erro ao carregar dados:', err);
