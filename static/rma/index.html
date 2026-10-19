@@ -60,9 +60,8 @@
 </head>
 <body class="bg-dark-950 text-slate-100 min-h-screen antialiased flex flex-col relative selection:bg-cyan-500/30 selection:text-cyan-200">
 
-    <!-- Top Navigation Header -->
-    <header class="glass-panel sticky top-0 z-40 border-b border-dark-700/80 px-4 lg:px-8 py-3.5">
-        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+    <header class="glass-panel sticky top-0 z-40 border-b border-dark-700/80 px-4 lg:px-6 py-3.5">
+        <div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
             
             <!-- Left: Logo & System Identity -->
             <div class="flex items-center gap-3.5">
@@ -137,7 +136,7 @@
     </header>
 
     <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+    <main class="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 lg:px-6 py-5 space-y-5">
 
         <!-- Top Metrics Cards -->
         <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
@@ -242,15 +241,15 @@
                     <table class="w-full text-left text-xs text-slate-300">
                         <thead class="bg-dark-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-dark-700">
                             <tr>
-                                <th class="py-3.5 px-4 whitespace-nowrap">Nº Controle</th>
-                                <th class="py-3.5 px-4 min-w-[160px]">Destinatário (Terceirizada)</th>
-                                <th class="py-3.5 px-4 min-w-[140px]">Transportadora</th>
-                                <th class="py-3.5 px-4 text-center whitespace-nowrap">Itens</th>
-                                <th class="py-3.5 px-4 whitespace-nowrap">Valor Total</th>
-                                <th class="py-3.5 px-4 text-center whitespace-nowrap">Status</th>
-                                <th class="py-3.5 px-4 whitespace-nowrap">NF Saída / Retorno</th>
-                                <th class="py-3.5 px-4 whitespace-nowrap">Data Emissão</th>
-                                <th class="py-3.5 px-4 text-right whitespace-nowrap">Ações</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">Nº Controle</th>
+                                <th class="py-2.5 px-3">Destinatário</th>
+                                <th class="py-2.5 px-3">Transportadora</th>
+                                <th class="py-2.5 px-2 text-center whitespace-nowrap">Itens</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">Valor Total</th>
+                                <th class="py-2.5 px-2.5 text-center whitespace-nowrap">Status</th>
+                                <th class="py-2.5 px-3 whitespace-nowrap">NF Saída / Retorno</th>
+                                <th class="py-2.5 px-2.5 whitespace-nowrap">Data Emissão</th>
+                                <th class="py-2.5 px-3 text-right whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="requestsTableBody" class="divide-y divide-dark-700/60 font-mono">
@@ -767,6 +766,6 @@
     </div>
 
     <!-- Scripts da Aplicação -->
-    <script src="/static/rma/js/app.js?v=2.6"></script>
+    <script src="/static/rma/js/app.js?v=2.7"></script>
 </body>
 </html>

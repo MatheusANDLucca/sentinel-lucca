@@ -191,15 +191,15 @@ async function loadStats() {
 function getStatusBadge(st) {
     st = (st || 'aguardando_nf').toLowerCase();
     if (st === 'aguardando_nf') {
-        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>Aguardando NF</span>';
+        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>Aguardando NF</span>';
     } else if (st === 'em_conserto' || st === 'em_transito') {
-        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-orange-400"></span>Em Conserto</span>';
+        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>Em Conserto</span>';
     } else if (st === 'retornado') {
-        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>Retornado</span>';
+        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Retornado</span>';
     } else if (st === 'cancelado') {
-        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-rose-400"></span>Cancelado</span>';
+        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-rose-400"></span>Cancelado</span>';
     }
-    return `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 whitespace-nowrap">${st}</span>`;
+    return `<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-300 whitespace-nowrap">${st}</span>`;
 }
 
 async function loadRequests() {
@@ -231,42 +231,47 @@ function renderRequestsTable() {
     tbody.innerHTML = requests.map(r => {
         const dateStr = r.created_at ? r.created_at.split(' ')[0] : '-';
         const hasNf = Boolean(r.invoice_out && String(r.invoice_out).trim() !== '' && String(r.invoice_out).trim() !== 'null');
+        const rawCarrier = r.carrier_name || '-';
+        const cleanCarrier = rawCarrier.replace(/^TRANSPORTADOS PELA /i, '').trim();
+
         return `
             <tr class="hover:bg-dark-700/40 transition">
-                <td class="py-3 px-4 font-bold text-white select-all">${r.request_number}</td>
-                <td class="py-3 px-4 font-sans font-medium text-slate-200">
-                    <div>${escapeHtml(r.provider_name || 'Terceirizada')}</div>
-                    ${r.provider_cnpj ? `<div class="text-[10px] text-slate-400 font-mono">CNPJ: ${r.provider_cnpj}</div>` : ''}
+                <td class="py-2.5 px-3 font-bold text-white select-all text-xs whitespace-nowrap">${r.request_number}</td>
+                <td class="py-2.5 px-3 font-sans text-xs">
+                    <div class="font-bold text-slate-100 truncate max-w-[150px]" title="${escapeHtml(r.provider_name || '')}">${escapeHtml(r.provider_name || 'Terceirizada')}</div>
+                    ${r.provider_cnpj ? `<div class="text-[10px] text-slate-400 font-mono">${r.provider_cnpj}</div>` : ''}
                 </td>
-                <td class="py-3 px-4 font-sans text-slate-300">${escapeHtml(r.carrier_name || '-')}</td>
-                <td class="py-3 px-4 text-center font-bold text-cyan-400">${(r.items || []).length}</td>
-                <td class="py-3 px-4 text-slate-200 font-semibold whitespace-nowrap">${formatCurrency(r.total_value)}</td>
-                <td class="py-3 px-4 font-sans whitespace-nowrap text-center">${getStatusBadge(r.status)}</td>
-                <td class="py-3 px-4 font-mono whitespace-nowrap">
+                <td class="py-2.5 px-3 font-sans text-slate-300 text-xs">
+                    <div class="truncate max-w-[130px]" title="${escapeHtml(rawCarrier)}">${escapeHtml(cleanCarrier)}</div>
+                </td>
+                <td class="py-2.5 px-2 text-center font-bold text-cyan-400 text-xs">${(r.items || []).length}</td>
+                <td class="py-2.5 px-3 text-slate-200 font-semibold whitespace-nowrap text-xs">${formatCurrency(r.total_value)}</td>
+                <td class="py-2.5 px-2.5 font-sans whitespace-nowrap text-center">${getStatusBadge(r.status)}</td>
+                <td class="py-2.5 px-3 font-mono whitespace-nowrap text-xs">
                     <div>${hasNf ? `<span class="text-amber-300 font-bold">${r.invoice_out}</span>` : '<span class="text-slate-500 font-normal">Pendente</span>'}</div>
                     ${r.invoice_in ? `<div class="text-[10px] text-emerald-400 font-bold mt-0.5">Ret: ${escapeHtml(r.invoice_in)}</div>` : ''}
                 </td>
-                <td class="py-3 px-4 text-slate-400 whitespace-nowrap">${dateStr}</td>
-                <td class="py-3 px-4 text-right font-sans">
-                    <div class="flex items-center justify-end gap-1.5">
+                <td class="py-2.5 px-2.5 text-slate-400 whitespace-nowrap text-xs font-mono">${dateStr}</td>
+                <td class="py-2.5 px-3 text-right font-sans whitespace-nowrap">
+                    <div class="flex items-center justify-end gap-1">
                         <!-- Imprimir Folha A4 Oficial -->
                         <button onclick="printRequest(${r.id})" title="Imprimir / Gerar PDF Oficial" class="p-1.5 rounded-lg bg-dark-700 hover:bg-cyan-600 text-cyan-400 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
                             <i data-lucide="printer" class="w-3.5 h-3.5"></i>
-                            <span class="inline">Imprimir</span>
+                            <span class="hidden 2xl:inline">Imprimir</span>
                         </button>
 
                         <!-- Editar Solicitação (Apenas se NÃO tiver NF de saída) -->
                         ${!hasNf ? `
                         <button onclick="openEditRequestModal(${r.id})" title="Editar Solicitação" class="p-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 border border-blue-500/30 text-blue-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
                             <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
-                            <span class="inline">Editar</span>
+                            <span class="hidden 2xl:inline">Editar</span>
                         </button>
                         ` : ''}
 
                         <!-- Informar Nota Fiscal -->
-                        <button onclick="openInvoiceModal(${r.id})" title="Informar Nota Fiscal e Status" class="p-1.5 rounded-lg bg-dark-700 hover:bg-amber-600 text-amber-400 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
+                        <button onclick="openInvoiceModal(${r.id})" title="Informar Nota Fiscal e Status" class="p-1.5 rounded-lg bg-dark-700 hover:bg-amber-600 text-amber-400 hover:text-white transition flex items-center gap-1 text-xs font-bold px-2">
                             <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
-                            <span class="inline">NF</span>
+                            <span>NF</span>
                         </button>
 
                         <!-- Excluir Solicitação (Apenas se não tiver NF de Saída) -->
