@@ -114,11 +114,17 @@ async def serve_rma():
 
 @app.get("/rma/print")
 async def serve_rma_print_default():
-    return FileResponse(str(STATIC_DIR / "rma" / "print.html"))
+    return FileResponse(
+        str(STATIC_DIR / "rma" / "print.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
+    )
 
 @app.get("/rma/print/{request_id}")
 async def serve_rma_print(request_id: int):
-    return FileResponse(str(STATIC_DIR / "rma" / "print.html"))
+    return FileResponse(
+        str(STATIC_DIR / "rma" / "print.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
+    )
 
 if __name__ == "__main__":
     import uvicorn
