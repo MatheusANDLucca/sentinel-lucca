@@ -228,6 +228,7 @@ function renderRequestsTable() {
     empty.classList.add('hidden');
     tbody.innerHTML = requests.map(r => {
         const dateStr = r.created_at ? r.created_at.split(' ')[0] : '-';
+        const hasNf = Boolean(r.invoice_out && String(r.invoice_out).trim() !== '' && String(r.invoice_out).trim() !== 'null');
         return `
             <tr class="hover:bg-dark-700/40 transition">
                 <td class="py-3 px-4 font-bold text-white select-all">${r.request_number}</td>
@@ -239,32 +240,32 @@ function renderRequestsTable() {
                 <td class="py-3 px-4 text-center font-bold text-cyan-400">${(r.items || []).length}</td>
                 <td class="py-3 px-4 text-slate-200 font-semibold">${formatCurrency(r.total_value)}</td>
                 <td class="py-3 px-4 font-sans">${getStatusBadge(r.status)}</td>
-                <td class="py-3 px-4 text-amber-300 font-bold">${r.invoice_out || '<span class="text-slate-500 font-normal">Pendente</span>'}</td>
+                <td class="py-3 px-4 text-amber-300 font-bold">${hasNf ? r.invoice_out : '<span class="text-slate-500 font-normal">Pendente</span>'}</td>
                 <td class="py-3 px-4 text-slate-400">${dateStr}</td>
                 <td class="py-3 px-4 text-right font-sans">
                     <div class="flex items-center justify-end gap-1.5">
                         <!-- Imprimir Folha A4 Oficial -->
-                        <button onclick="printRequest(${r.id})" title="Imprimir / Gerar PDF Oficial" class="p-1.5 rounded-lg bg-dark-700 hover:bg-cyan-600 text-cyan-400 hover:text-white transition flex items-center gap-1 text-xs">
+                        <button onclick="printRequest(${r.id})" title="Imprimir / Gerar PDF Oficial" class="p-1.5 rounded-lg bg-dark-700 hover:bg-cyan-600 text-cyan-400 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
                             <i data-lucide="printer" class="w-3.5 h-3.5"></i>
-                            <span class="hidden xl:inline font-semibold">Imprimir</span>
+                            <span class="inline">Imprimir</span>
                         </button>
 
                         <!-- Editar Solicitação (Apenas se NÃO tiver NF de saída) -->
-                        ${!r.invoice_out ? `
-                        <button onclick="openEditRequestModal(${r.id})" title="Editar Solicitação (Disponível antes da NF de Saída)" class="p-1.5 rounded-lg bg-dark-700 hover:bg-blue-600 text-blue-400 hover:text-white transition flex items-center gap-1 text-xs">
-                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
-                            <span class="hidden xl:inline font-semibold">Editar</span>
+                        ${!hasNf ? `
+                        <button onclick="openEditRequestModal(${r.id})" title="Editar Solicitação" class="p-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 border border-blue-500/30 text-blue-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
+                            <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                            <span class="inline">Editar</span>
                         </button>
                         ` : ''}
 
                         <!-- Informar Nota Fiscal -->
-                        <button onclick="openInvoiceModal(${r.id})" title="Informar Nota Fiscal e Status" class="p-1.5 rounded-lg bg-dark-700 hover:bg-amber-600 text-amber-400 hover:text-white transition flex items-center gap-1 text-xs">
+                        <button onclick="openInvoiceModal(${r.id})" title="Informar Nota Fiscal e Status" class="p-1.5 rounded-lg bg-dark-700 hover:bg-amber-600 text-amber-400 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
                             <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
-                            <span class="hidden xl:inline font-semibold">NF</span>
+                            <span class="inline">NF</span>
                         </button>
 
                         <!-- Excluir Solicitação (Apenas se não tiver NF de Saída) -->
-                        ${!r.invoice_out ? `
+                        ${!hasNf ? `
                         <button onclick="deleteRequest(${r.id}, '${r.request_number}')" title="Excluir Solicitação" class="p-1.5 rounded-lg bg-dark-700 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                         </button>

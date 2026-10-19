@@ -107,7 +107,10 @@ async def serve_printers():
 @app.get("/rma")
 @app.get("/rma/")
 async def serve_rma():
-    return FileResponse(str(STATIC_DIR / "rma" / "index.html"))
+    return FileResponse(
+        str(STATIC_DIR / "rma" / "index.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache"}
+    )
 
 @app.get("/rma/print")
 async def serve_rma_print_default():
