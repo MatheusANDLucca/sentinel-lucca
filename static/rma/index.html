@@ -280,6 +280,25 @@
                         <option value="em_conserto">Em Conserto Externo</option>
                         <option value="retornado">Retornado / Devolvido</option>
                     </select>
+                    <select id="filterItemBranch" onchange="loadItems()" class="bg-dark-900 border border-dark-600 rounded-xl px-3 py-2 text-xs text-slate-200">
+                        <option value="all">Todas as Filiais</option>
+                        <option value="Matriz">Matriz</option>
+                        <option value="Arinos">Arinos</option>
+                        <option value="Bonfinopolis">Bonfinopolis</option>
+                        <option value="Brasilandia">Brasilandia</option>
+                        <option value="Buritis">Buritis</option>
+                        <option value="Cab Grande">Cab Grande</option>
+                        <option value="Cab Goias">Cab Goias</option>
+                        <option value="Cercado">Cercado</option>
+                        <option value="Chapada Gaucha">Chapada Gaucha</option>
+                        <option value="Dom Bosco">Dom Bosco</option>
+                        <option value="Natalandia">Natalandia</option>
+                        <option value="Pompeú">Pompeú</option>
+                        <option value="Riachinho">Riachinho</option>
+                        <option value="Rural Minas">Rural Minas</option>
+                        <option value="Uruana">Uruana</option>
+                        <option value="Urucuia">Urucuia</option>
+                    </select>
                 </div>
                 <button onclick="openItemModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
                     <i data-lucide="plus" class="w-4 h-4"></i>
@@ -495,7 +514,25 @@
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block font-medium text-slate-300 mb-1">Filial de Origem *</label>
-                        <input type="text" id="itemOriginBranch" required placeholder="Ex: AGROVETERINARIA - CABECEIRAS GO" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 uppercase">
+                        <select id="itemOriginBranch" required class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:border-cyan-500 focus:outline-none">
+                            <option value="" disabled selected>Selecione a Filial...</option>
+                            <option value="Matriz">Matriz</option>
+                            <option value="Arinos">Arinos</option>
+                            <option value="Bonfinopolis">Bonfinopolis</option>
+                            <option value="Brasilandia">Brasilandia</option>
+                            <option value="Buritis">Buritis</option>
+                            <option value="Cab Grande">Cab Grande</option>
+                            <option value="Cab Goias">Cab Goias</option>
+                            <option value="Cercado">Cercado</option>
+                            <option value="Chapada Gaucha">Chapada Gaucha</option>
+                            <option value="Dom Bosco">Dom Bosco</option>
+                            <option value="Natalandia">Natalandia</option>
+                            <option value="Pompeú">Pompeú</option>
+                            <option value="Riachinho">Riachinho</option>
+                            <option value="Rural Minas">Rural Minas</option>
+                            <option value="Uruana">Uruana</option>
+                            <option value="Urucuia">Urucuia</option>
+                        </select>
                     </div>
                     <div>
                         <label class="block font-medium text-slate-300 mb-1">Setor de Origem</label>
@@ -766,6 +803,6 @@
     </div>
 
     <!-- Scripts da Aplicação -->
-    <script src="/static/rma/js/app.js?v=2.7"></script>
+    <script src="/static/rma/js/app.js?v=2.8"></script>
 </body>
 </html>

@@ -625,10 +625,12 @@ function debounceSearchItems() {
 async function loadItems() {
     const search = document.getElementById('searchItemInput')?.value || '';
     const status = document.getElementById('filterItemStatus')?.value || 'all';
+    const branch = document.getElementById('filterItemBranch')?.value || 'all';
 
     let url = '/api/rma/items?1=1';
     if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
     if (status && status !== 'all') url += `&status=${status}`;
+    if (branch && branch !== 'all') url += `&branch=${encodeURIComponent(branch)}`;
 
     try {
         const res = await fetch(url, { headers: getAuthHeaders(false) });
@@ -873,6 +875,7 @@ function openItemModal(itemId = null) {
     document.getElementById('formItem').reset();
     document.getElementById('editItemId').value = itemId || '';
     document.getElementById('itemModalTitle').textContent = itemId ? 'Editar Equipamento' : 'Cadastrar Equipamento';
+    document.getElementById('itemOriginBranch').value = '';
     openModal('modalItem');
 }
 
@@ -886,7 +889,29 @@ function editItem(itemId) {
     document.getElementById('itemCode').value = it.item_code || '';
     document.getElementById('itemDescription').value = it.description || '';
     document.getElementById('itemType').value = it.item_type || 'Outro';
-    document.getElementById('itemOriginBranch').value = it.origin_branch || '';
+
+    const branchSelect = document.getElementById('itemOriginBranch');
+    const branchVal = it.origin_branch || '';
+    if (branchVal) {
+        let found = false;
+        for (let opt of branchSelect.options) {
+            if (opt.value.toLowerCase() === branchVal.toLowerCase()) {
+                branchSelect.value = opt.value;
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            const opt = document.createElement('option');
+            opt.value = branchVal;
+            opt.textContent = branchVal;
+            branchSelect.appendChild(opt);
+            branchSelect.value = branchVal;
+        }
+    } else {
+        branchSelect.value = '';
+    }
+
     document.getElementById('itemOriginDept').value = it.origin_department || '';
     document.getElementById('itemValue').value = it.estimated_value || '';
     document.getElementById('itemEc').value = it.ec || 'Bom';
