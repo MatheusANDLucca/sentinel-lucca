@@ -17,8 +17,7 @@ from app.websocket_manager import ws_manager
 
 router = APIRouter(
     prefix="/api/rma",
-    tags=["RMA & Controle Patrimonial"],
-    dependencies=[Depends(require_module_access("rma"))]
+    tags=["RMA & Controle Patrimonial"]
 )
 
 # ==================== FORNECEDORES / TERCEIRIZADAS ====================

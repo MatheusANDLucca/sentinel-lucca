@@ -406,6 +406,19 @@
     </div>
 
     <script>
+        function getToken() {
+            return localStorage.getItem('sentinel_token') || localStorage.getItem('cftv_token') || localStorage.getItem('print_token') || localStorage.getItem('rma_token');
+        }
+
+        function getAuthHeaders() {
+            const token = getToken();
+            const headers = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            return headers;
+        }
+
         document.addEventListener('DOMContentLoaded', async () => {
             // Obter ID da solicitação pela URL (ex: /rma/print/1 ou ?id=1)
             let reqId = null;
@@ -421,7 +434,7 @@
             if (!reqId) {
                 // Se nenhum ID for passado, carregar a solicitação mais recente
                 try {
-                    const r = await fetch('/api/rma/requests');
+                    const r = await fetch('/api/rma/requests', { headers: getAuthHeaders() });
                     if (r.ok) {
                         const list = await r.json();
                         if (list.length > 0) reqId = list[0].id;
@@ -440,7 +453,7 @@
 
         async function loadPrintData(id) {
             try {
-                const res = await fetch(`/api/rma/requests/${id}/print-data`);
+                const res = await fetch(`/api/rma/requests/${id}/print-data`, { headers: getAuthHeaders() });
                 if (!res.ok) throw new Error('Não foi possível carregar os dados da solicitação.');
                 const data = await res.json();
                 const req = data.request;

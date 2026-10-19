@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
@@ -109,8 +110,11 @@ async def serve_rma():
     return FileResponse(str(STATIC_DIR / "rma" / "index.html"))
 
 @app.get("/rma/print")
+async def serve_rma_print_default():
+    return FileResponse(str(STATIC_DIR / "rma" / "print.html"))
+
 @app.get("/rma/print/{request_id}")
-async def serve_rma_print(request_id: Optional[int] = None):
+async def serve_rma_print(request_id: int):
     return FileResponse(str(STATIC_DIR / "rma" / "print.html"))
 
 if __name__ == "__main__":
