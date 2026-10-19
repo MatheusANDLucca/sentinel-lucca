@@ -829,6 +829,17 @@ async def update_request(
         update_dict = {k: v for k, v in payload.model_dump().items() if v is not None}
         new_item_ids = update_dict.pop("item_ids", None)
 
+        # Regra de negócio automatizada:
+        # Se uma Nota Fiscal de Retorno foi informada, o status passa automaticamente para 'retornado'
+        if update_dict.get("invoice_in") and str(update_dict["invoice_in"]).strip():
+            update_dict["status"] = "retornado"
+            if not update_dict.get("invoice_in_date"):
+                update_dict["invoice_in_date"] = datetime.now().strftime("%Y-%m-%d")
+        elif update_dict.get("invoice_out") and str(update_dict["invoice_out"]).strip() and update_dict.get("status") in (None, "aguardando_nf"):
+            update_dict["status"] = "em_conserto"
+            if not update_dict.get("invoice_out_date"):
+                update_dict["invoice_out_date"] = datetime.now().strftime("%Y-%m-%d")
+
         if update_dict:
             update_dict["updated_at"] = now_str
             set_clause = ", ".join([f"{k} = ?" for k in update_dict.keys()])

@@ -242,15 +242,15 @@
                     <table class="w-full text-left text-xs text-slate-300">
                         <thead class="bg-dark-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-dark-700">
                             <tr>
-                                <th class="py-3.5 px-4">Nº Controle</th>
-                                <th class="py-3.5 px-4">Destinatário (Terceirizada)</th>
-                                <th class="py-3.5 px-4">Transportadora</th>
-                                <th class="py-3.5 px-4">Itens</th>
-                                <th class="py-3.5 px-4">Valor Total</th>
-                                <th class="py-3.5 px-4">Status</th>
-                                <th class="py-3.5 px-4">NF Saída</th>
-                                <th class="py-3.5 px-4">Data Emissão</th>
-                                <th class="py-3.5 px-4 text-right">Ações</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">Nº Controle</th>
+                                <th class="py-3.5 px-4 min-w-[160px]">Destinatário (Terceirizada)</th>
+                                <th class="py-3.5 px-4 min-w-[140px]">Transportadora</th>
+                                <th class="py-3.5 px-4 text-center whitespace-nowrap">Itens</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">Valor Total</th>
+                                <th class="py-3.5 px-4 text-center whitespace-nowrap">Status</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">NF Saída / Retorno</th>
+                                <th class="py-3.5 px-4 whitespace-nowrap">Data Emissão</th>
+                                <th class="py-3.5 px-4 text-right whitespace-nowrap">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="requestsTableBody" class="divide-y divide-dark-700/60 font-mono">
@@ -560,27 +560,33 @@
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-slate-400 mb-1">Nº NF de Saída</label>
-                            <input type="text" id="invNumOut" placeholder="Ex: NF 14592" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                            <input type="text" id="invNumOut" oninput="handleInvoiceInputs()" placeholder="Ex: NF 14592" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
                         </div>
                         <div>
                             <label class="block text-slate-400 mb-1">Data Emissão Saída</label>
-                            <input type="date" id="invDateOut" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                            <input type="date" id="invDateOut" onchange="handleInvoiceInputs()" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
                         </div>
                     </div>
                 </div>
 
                 <div class="border-t border-dark-700/60 pt-3">
-                    <p class="font-bold text-emerald-400 mb-2">Retorno (Quando a terceirizada devolver):</p>
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="font-bold text-emerald-400">Retorno (Quando a terceirizada devolver):</p>
+                        <span class="text-[10px] text-emerald-400/90 font-medium bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Auto-Finaliza</span>
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-slate-400 mb-1">Nº NF de Retorno</label>
-                            <input type="text" id="invNumIn" placeholder="Ex: NF 8721" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                            <input type="text" id="invNumIn" oninput="handleInvoiceInputs()" placeholder="Ex: NF 8721" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
                         </div>
                         <div>
                             <label class="block text-slate-400 mb-1">Data de Retorno</label>
-                            <input type="date" id="invDateIn" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                            <input type="date" id="invDateIn" onchange="handleInvoiceInputs()" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
                         </div>
                     </div>
+                    <p class="text-[10px] text-slate-400 mt-2">
+                        * Ao preencher a NF de Retorno, o status será alterado para <strong class="text-emerald-300">"Retornado"</strong> automaticamente.
+                    </p>
                 </div>
 
                 <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
@@ -761,6 +767,6 @@
     </div>
 
     <!-- Scripts da Aplicação -->
-    <script src="/static/rma/js/app.js?v=2.5"></script>
+    <script src="/static/rma/js/app.js?v=2.6"></script>
 </body>
 </html>

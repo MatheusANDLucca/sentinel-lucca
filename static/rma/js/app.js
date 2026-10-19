@@ -191,13 +191,15 @@ async function loadStats() {
 function getStatusBadge(st) {
     st = (st || 'aguardando_nf').toLowerCase();
     if (st === 'aguardando_nf') {
-        return '<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Aguardando NF</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>Aguardando NF</span>';
     } else if (st === 'em_conserto' || st === 'em_transito') {
-        return '<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30">Em Conserto</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-orange-400"></span>Em Conserto</span>';
     } else if (st === 'retornado') {
-        return '<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Retornado</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-emerald-400"></span>Retornado</span>';
+    } else if (st === 'cancelado') {
+        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-300 border border-rose-500/30 whitespace-nowrap shadow-sm"><span class="w-2 h-2 rounded-full bg-rose-400"></span>Cancelado</span>';
     }
-    return `<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800 text-slate-300">${st}</span>`;
+    return `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-slate-800 text-slate-300 whitespace-nowrap">${st}</span>`;
 }
 
 async function loadRequests() {
@@ -238,10 +240,13 @@ function renderRequestsTable() {
                 </td>
                 <td class="py-3 px-4 font-sans text-slate-300">${escapeHtml(r.carrier_name || '-')}</td>
                 <td class="py-3 px-4 text-center font-bold text-cyan-400">${(r.items || []).length}</td>
-                <td class="py-3 px-4 text-slate-200 font-semibold">${formatCurrency(r.total_value)}</td>
-                <td class="py-3 px-4 font-sans">${getStatusBadge(r.status)}</td>
-                <td class="py-3 px-4 text-amber-300 font-bold">${hasNf ? r.invoice_out : '<span class="text-slate-500 font-normal">Pendente</span>'}</td>
-                <td class="py-3 px-4 text-slate-400">${dateStr}</td>
+                <td class="py-3 px-4 text-slate-200 font-semibold whitespace-nowrap">${formatCurrency(r.total_value)}</td>
+                <td class="py-3 px-4 font-sans whitespace-nowrap text-center">${getStatusBadge(r.status)}</td>
+                <td class="py-3 px-4 font-mono whitespace-nowrap">
+                    <div>${hasNf ? `<span class="text-amber-300 font-bold">${r.invoice_out}</span>` : '<span class="text-slate-500 font-normal">Pendente</span>'}</div>
+                    ${r.invoice_in ? `<div class="text-[10px] text-emerald-400 font-bold mt-0.5">Ret: ${escapeHtml(r.invoice_in)}</div>` : ''}
+                </td>
+                <td class="py-3 px-4 text-slate-400 whitespace-nowrap">${dateStr}</td>
                 <td class="py-3 px-4 text-right font-sans">
                     <div class="flex items-center justify-end gap-1.5">
                         <!-- Imprimir Folha A4 Oficial -->
@@ -536,15 +541,52 @@ function openInvoiceModal(reqId) {
     openModal('modalInvoice');
 }
 
+function handleInvoiceInputs() {
+    const invIn = document.getElementById('invNumIn').value.trim();
+    const invOut = document.getElementById('invNumOut').value.trim();
+    const statusSelect = document.getElementById('invoiceStatus');
+
+    if (invIn !== '') {
+        statusSelect.value = 'retornado';
+        if (!document.getElementById('invDateIn').value) {
+            document.getElementById('invDateIn').value = new Date().toISOString().split('T')[0];
+        }
+    } else if (invOut !== '' && statusSelect.value === 'aguardando_nf') {
+        statusSelect.value = 'em_conserto';
+        if (!document.getElementById('invDateOut').value) {
+            document.getElementById('invDateOut').value = new Date().toISOString().split('T')[0];
+        }
+    }
+}
+
 async function submitInvoiceForm(e) {
     e.preventDefault();
     const id = document.getElementById('invoiceReqId').value;
+    let status = document.getElementById('invoiceStatus').value;
+    const invNumOut = document.getElementById('invNumOut').value.trim();
+    let invDateOut = document.getElementById('invDateOut').value || null;
+    const invNumIn = document.getElementById('invNumIn').value.trim();
+    let invDateIn = document.getElementById('invDateIn').value || null;
+
+    // Regra: preencheu NF de retorno -> muda automaticamente para 'retornado'
+    if (invNumIn !== '') {
+        status = 'retornado';
+        if (!invDateIn) {
+            invDateIn = new Date().toISOString().split('T')[0];
+        }
+    } else if (invNumOut !== '' && status === 'aguardando_nf') {
+        status = 'em_conserto';
+        if (!invDateOut) {
+            invDateOut = new Date().toISOString().split('T')[0];
+        }
+    }
+
     const payload = {
-        status: document.getElementById('invoiceStatus').value,
-        invoice_out: document.getElementById('invNumOut').value.trim(),
-        invoice_out_date: document.getElementById('invDateOut').value || null,
-        invoice_in: document.getElementById('invNumIn').value.trim(),
-        invoice_in_date: document.getElementById('invDateIn').value || null
+        status: status,
+        invoice_out: invNumOut,
+        invoice_out_date: invDateOut,
+        invoice_in: invNumIn,
+        invoice_in_date: invDateIn
     };
 
     try {
@@ -558,6 +600,7 @@ async function submitInvoiceForm(e) {
             closeModal('modalInvoice');
             await loadRequests();
             await loadStats();
+            await loadItems();
         } else {
             const err = await res.json();
             alert(err.detail || 'Erro ao atualizar dados da solicitação.');
@@ -594,16 +637,17 @@ async function loadItems() {
 }
 
 function getItemStatusBadge(st) {
+    st = (st || 'na_ti').toLowerCase();
     if (st === 'na_ti') {
-        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">Na TI (Disponível)</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-blue-400"></span>Na TI (Disponível)</span>';
     } else if (st === 'aguardando_nf') {
-        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Aguardando NF</span>';
-    } else if (st === 'em_conserto') {
-        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30">Em Conserto</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>Aguardando NF</span>';
+    } else if (st === 'em_conserto' || st === 'em_transito') {
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-orange-400"></span>Em Conserto</span>';
     } else if (st === 'retornado') {
-        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Retornado</span>';
+        return '<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 whitespace-nowrap"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Retornado</span>';
     }
-    return `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">${st}</span>`;
+    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs bg-slate-800 text-slate-300 whitespace-nowrap">${st}</span>`;
 }
 
 function renderItemsTable() {
