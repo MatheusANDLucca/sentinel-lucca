@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RMA & Controle Patrimonial - Sentinel Lucca</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            950: '#060911',
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151'
+                        },
+                        brand: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        },
+                        amberbrand: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .active-tab {
+            color: #38bdf8 !important;
+            border-bottom: 2px solid #38bdf8 !important;
+        }
+    </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen antialiased flex flex-col relative selection:bg-cyan-500/30 selection:text-cyan-200">
+
+    <!-- Top Navigation Header -->
+    <header class="glass-panel sticky top-0 z-40 border-b border-dark-700/80 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+            
+            <!-- Left: Logo & System Identity -->
+            <div class="flex items-center gap-3.5">
+                <a href="/portal" class="flex items-center gap-3 group" title="Ir para a Central de Módulos">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 via-orange-600 to-amber-700 flex items-center justify-center shadow-lg shadow-orange-500/20 border border-white/10 group-hover:scale-105 transition">
+                        <i data-lucide="package-check" class="w-5 h-5 text-white"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-bold tracking-tight text-white">RMA Sentinel</span>
+                            <span class="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">Patrimônio</span>
+                        </div>
+                        <p class="text-[11px] text-slate-400">Cooperativa Agropecuária Unaí Ltda</p>
+                    </div>
+                </a>
+
+                <!-- Module Shortcuts -->
+                <nav class="hidden md:flex items-center gap-1.5 ml-6 pl-6 border-l border-dark-700 text-xs">
+                    <a href="/portal" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-dark-800 transition flex items-center gap-1.5">
+                        <i data-lucide="layout-grid" class="w-3.5 h-3.5"></i>
+                        <span>Hub</span>
+                    </a>
+                    <a href="/cftv" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-dark-800 transition flex items-center gap-1.5">
+                        <i data-lucide="video" class="w-3.5 h-3.5 text-blue-400"></i>
+                        <span>CFTV</span>
+                    </a>
+                    <a href="/printers" class="px-2.5 py-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-dark-800 transition flex items-center gap-1.5">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        <span>Impressoras</span>
+                    </a>
+                </nav>
+            </div>
+
+            <!-- Right: Actions & User Dropdown -->
+            <div class="flex items-center gap-3">
+                <div class="hidden sm:flex items-center gap-1.5 font-mono text-xs text-slate-400 bg-dark-900/80 px-3 py-1.5 rounded-lg border border-dark-700">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-amber-400"></i>
+                    <span id="liveClock">--:--:--</span>
+                </div>
+
+                <!-- Botão Nova Solicitação -->
+                <button onclick="openNewRequestModal()" class="bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-lg shadow-orange-600/25 flex items-center gap-1.5 transition">
+                    <i data-lucide="file-plus" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Nova Solicitação</span>
+                </button>
+
+                <!-- User Dropdown Menu -->
+                <div class="relative">
+                    <button onclick="toggleUserDropdown()" class="flex items-center gap-2 p-1.5 rounded-xl bg-dark-800 border border-dark-700 hover:border-dark-600 transition">
+                        <div id="userAvatar" class="w-7 h-7 rounded-lg bg-gradient-to-tr from-cyan-600 to-blue-600 text-white font-bold text-xs flex items-center justify-center">
+                            TI
+                        </div>
+                        <span id="headerUserName" class="text-xs font-medium text-slate-200 hidden md:inline">Operador</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+
+                    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-56 rounded-2xl bg-dark-900 border border-dark-700 shadow-2xl py-2 z-50 text-xs">
+                        <div class="px-4 py-2 border-b border-dark-700/80">
+                            <p id="dropFullName" class="font-semibold text-white truncate">Operador TI</p>
+                            <p id="dropUsername" class="text-[11px] text-slate-400">@usuario</p>
+                            <span id="headerUserRole" class="inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-dark-800 text-cyan-400 border border-cyan-500/20">OPERADOR</span>
+                        </div>
+                        <button onclick="handleLogout()" class="w-full text-left px-4 py-2.5 text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span>Sair do Sistema</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
+
+        <!-- Top Metrics Cards -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+            
+            <!-- Itens na TI -->
+            <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between border-l-4 border-l-blue-500">
+                <div class="flex items-center justify-between text-slate-400 mb-1">
+                    <span class="text-xs font-medium uppercase tracking-wider">Itens na TI</span>
+                    <i data-lucide="box" class="w-4 h-4 text-blue-400"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="kpiItemsNaTi" class="text-2xl lg:text-3xl font-extrabold text-white">0</span>
+                    <span class="text-xs text-slate-400">aguardando envio</span>
+                </div>
+            </div>
+
+            <!-- Aguardando NF -->
+            <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between border-l-4 border-l-amber-500 bg-amber-950/10">
+                <div class="flex items-center justify-between text-amber-400 mb-1">
+                    <span class="text-xs font-medium uppercase tracking-wider">Aguardando NF</span>
+                    <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="kpiReqsAguardandoNf" class="text-2xl lg:text-3xl font-extrabold text-amber-300">0</span>
+                    <span class="text-xs text-amber-400/70">solicitações pendentes</span>
+                </div>
+            </div>
+
+            <!-- Em Conserto Externo -->
+            <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between border-l-4 border-l-orange-500">
+                <div class="flex items-center justify-between text-orange-400 mb-1">
+                    <span class="text-xs font-medium uppercase tracking-wider">Em Conserto</span>
+                    <i data-lucide="wrench" class="w-4 h-4 text-orange-400"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="kpiItemsEmConserto" class="text-2xl lg:text-3xl font-extrabold text-white">0</span>
+                    <span class="text-xs text-slate-400">na assistência técnica</span>
+                </div>
+            </div>
+
+            <!-- Finalizados / Retornados -->
+            <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between border-l-4 border-l-emerald-500">
+                <div class="flex items-center justify-between text-emerald-400 mb-1">
+                    <span class="text-xs font-medium uppercase tracking-wider">Total Solicitações</span>
+                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span id="kpiTotalRequests" class="text-2xl lg:text-3xl font-extrabold text-emerald-400">0</span>
+                    <span class="text-xs text-emerald-500/70">emitidas</span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Navigation Tabs -->
+        <div class="border-b border-dark-700 flex items-center gap-6 text-xs font-semibold overflow-x-auto pb-px">
+            <button onclick="switchTab('requests')" id="tabBtn-requests" class="tab-btn active-tab py-3 flex items-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-white transition whitespace-nowrap">
+                <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                <span>Solicitações de Controle Patrimonial</span>
+            </button>
+            <button onclick="switchTab('items')" id="tabBtn-items" class="tab-btn py-3 flex items-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-white transition whitespace-nowrap">
+                <i data-lucide="cpu" class="w-4 h-4"></i>
+                <span>Equipamentos Cadastrados</span>
+            </button>
+            <button onclick="switchTab('providers')" id="tabBtn-providers" class="tab-btn py-3 flex items-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-white transition whitespace-nowrap">
+                <i data-lucide="building-2" class="w-4 h-4"></i>
+                <span>Terceirizadas (Assistências)</span>
+            </button>
+            <button onclick="switchTab('carriers')" id="tabBtn-carriers" class="tab-btn py-3 flex items-center gap-2 border-b-2 border-transparent text-slate-400 hover:text-white transition whitespace-nowrap">
+                <i data-lucide="truck" class="w-4 h-4"></i>
+                <span>Transportadoras (Frete)</span>
+            </button>
+        </div>
+
+        <!-- ==================== TAB 1: SOLICITAÇÕES ==================== -->
+        <section id="tabContent-requests" class="space-y-4">
+            
+            <!-- Filters & Actions -->
+            <div class="glass-panel rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <select id="filterRequestStatus" onchange="loadRequests()" class="bg-dark-900 border border-dark-600 rounded-xl px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-amber-500">
+                        <option value="all">Todos os Status</option>
+                        <option value="aguardando_nf">Aguardando NF de Saída</option>
+                        <option value="em_conserto">Em Conserto na Terceirizada</option>
+                        <option value="retornado">Retornado / Concluído</option>
+                    </select>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="loadRequests()" class="p-2 rounded-xl bg-dark-800 border border-dark-700 hover:bg-dark-700 text-slate-300 hover:text-white transition" title="Atualizar">
+                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                    </button>
+                    <button onclick="openNewRequestModal()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Nova Solicitação</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabela de Solicitações -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-dark-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-dark-700">
+                            <tr>
+                                <th class="py-3.5 px-4">Nº Controle</th>
+                                <th class="py-3.5 px-4">Destinatário (Terceirizada)</th>
+                                <th class="py-3.5 px-4">Transportadora</th>
+                                <th class="py-3.5 px-4">Itens</th>
+                                <th class="py-3.5 px-4">Valor Total</th>
+                                <th class="py-3.5 px-4">Status</th>
+                                <th class="py-3.5 px-4">NF Saída</th>
+                                <th class="py-3.5 px-4">Data Emissão</th>
+                                <th class="py-3.5 px-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="requestsTableBody" class="divide-y divide-dark-700/60 font-mono">
+                            <!-- Injetado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="emptyRequests" class="hidden py-12 text-center text-slate-500 text-xs font-sans">
+                    Nenhuma solicitação encontrada. Clique em "Nova Solicitação" para criar o primeiro controle patrimonial.
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== TAB 2: EQUIPAMENTOS / ITENS ==================== -->
+        <section id="tabContent-items" class="hidden space-y-4">
+            
+            <div class="glass-panel rounded-2xl p-4 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3 w-full md:w-auto flex-1">
+                    <div class="relative w-full sm:w-72">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="searchItemInput" oninput="debounceSearchItems()" placeholder="Buscar patrimônio, serial ou descrição..." class="w-full bg-dark-900 border border-dark-600 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-100 placeholder-slate-400 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <select id="filterItemStatus" onchange="loadItems()" class="bg-dark-900 border border-dark-600 rounded-xl px-3 py-2 text-xs text-slate-200">
+                        <option value="all">Todos os Status</option>
+                        <option value="na_ti">Na TI (Disponível)</option>
+                        <option value="aguardando_nf">Aguardando NF</option>
+                        <option value="em_conserto">Em Conserto Externo</option>
+                        <option value="retornado">Retornado / Devolvido</option>
+                    </select>
+                </div>
+                <button onclick="openItemModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Cadastrar Equipamento</span>
+                </button>
+            </div>
+
+            <!-- Tabela de Itens -->
+            <div class="glass-panel rounded-2xl overflow-hidden shadow-xl">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-dark-900/90 text-slate-400 uppercase tracking-wider font-semibold border-b border-dark-700">
+                            <tr>
+                                <th class="py-3.5 px-4">Patrimônio</th>
+                                <th class="py-3.5 px-4">Descrição do Equipamento</th>
+                                <th class="py-3.5 px-4">Nº de Série</th>
+                                <th class="py-3.5 px-4">Código</th>
+                                <th class="py-3.5 px-4">Filial / Origem</th>
+                                <th class="py-3.5 px-4">Valor Contábil</th>
+                                <th class="py-3.5 px-4">Status</th>
+                                <th class="py-3.5 px-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody" class="divide-y divide-dark-700/60 font-mono">
+                            <!-- Injetado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="emptyItems" class="hidden py-12 text-center text-slate-500 text-xs font-sans">
+                    Nenhum equipamento cadastrado. Clique no botão acima para adicionar.
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ==================== TAB 3: TERCEIRIZADAS ==================== -->
+        <section id="tabContent-providers" class="hidden space-y-4">
+            
+            <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white">Empresas Terceirizadas de Manutenção</h3>
+                    <p class="text-xs text-slate-400">Prestadores de serviço onde equipamentos são enviados para conserto</p>
+                </div>
+                <button onclick="openProviderModal()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Nova Terceirizada</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="providersGrid">
+                <!-- Cards de Terceirizadas -->
+            </div>
+
+        </section>
+
+        <!-- ==================== TAB 4: TRANSPORTADORAS ==================== -->
+        <section id="tabContent-carriers" class="hidden space-y-4">
+            
+            <div class="glass-panel rounded-2xl p-4 flex items-center justify-between">
+                <div>
+                    <h3 class="text-sm font-bold text-white">Transportadoras e Empresas de Frete</h3>
+                    <p class="text-xs text-slate-400">Empresas responsáveis pelo transporte das mercadorias entre filiais e assistências</p>
+                </div>
+                <button onclick="openCarrierModal()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition">
+                    <i data-lucide="plus" class="w-4 h-4"></i>
+                    <span>Nova Transportadora</span>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="carriersGrid">
+                <!-- Cards de Transportadoras -->
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- ==================== MODAL: NOVA SOLICITAÇÃO ==================== -->
+    <div id="modalNewRequest" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-5">
+            <div class="flex items-center justify-between border-b border-dark-700 pb-3">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                        <i data-lucide="file-plus" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-sm font-bold text-white">Criar Solicitação de Controle Patrimonial</h3>
+                </div>
+                <button onclick="closeModal('modalNewRequest')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="formNewRequest" onsubmit="submitNewRequest(event)" class="space-y-4 text-xs">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">DE: Solicitante (Seu Nome)</label>
+                        <input type="text" id="reqSenderName" required value="CLENIO MARCOS" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Setor Emitente</label>
+                        <input type="text" id="reqSenderDept" required value="CPD" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">PARA: Terceirizada (Assistência Técnica)</label>
+                        <select id="reqProviderId" required class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:border-amber-500">
+                            <!-- Opções carregadas dinamicamente -->
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Setor Destinatário</label>
+                        <input type="text" id="reqRecipientDept" required value="MANUTENÇÃO" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Tipo de Assunto</label>
+                        <select id="reqSubjectType" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                            <option value="conserto" selected>Conserto (X)</option>
+                            <option value="transferencia">Transferência</option>
+                            <option value="emprestimo">Empréstimo</option>
+                            <option value="baixa">Pedido de Baixa</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Transportadora (Empresa que faz o frete)</label>
+                        <select id="reqCarrierId" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:border-amber-500">
+                            <!-- Opções carregadas dinamicamente -->
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Seleção dos Itens -->
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1.5 flex items-center justify-between">
+                        <span>Selecione os Equipamentos para Envio (Disponíveis na TI):</span>
+                        <span id="selectedItemsCount" class="text-amber-400 font-bold">0 selecionados</span>
+                    </label>
+                    <div id="availableItemsContainer" class="max-h-48 overflow-y-auto border border-dark-700 bg-dark-900/60 rounded-xl p-3 space-y-2">
+                        <!-- Checkboxes de itens -->
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Justificativa / Observações Adicionais</label>
+                    <textarea id="reqJustification" rows="2" placeholder="Observações específicas para o departamento de notas ou para a assistência..." class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalNewRequest')" class="px-4 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-300">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-amber-600/30">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Gerar Solicitação</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: CADASTRAR / EDITAR EQUIPAMENTO ==================== -->
+    <div id="modalItem" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-dark-700 pb-3">
+                <h3 id="itemModalTitle" class="text-sm font-bold text-white">Cadastrar Equipamento</h3>
+                <button onclick="closeModal('modalItem')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="formItem" onsubmit="submitItemForm(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="editItemId">
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Nº do Patrimônio *</label>
+                        <input type="text" id="itemPatrimony" required placeholder="Ex: 00011460" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Número de Série (NS)</label>
+                        <input type="text" id="itemSerial" placeholder="Ex: 52J16400599" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Descrição do Equipamento *</label>
+                    <input type="text" id="itemDescription" required placeholder="Ex: IMPRESSORA ZEBRA ZT230 203" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-semibold uppercase">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Código Interno</label>
+                        <input type="text" id="itemCode" placeholder="Ex: 00087720" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Tipo de Item</label>
+                        <input type="text" id="itemType" list="commonTypes" placeholder="Impressora, Leitor, Nobreak..." class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                        <datalist id="commonTypes">
+                            <option value="Impressora Térmica">
+                            <option value="Leitor de Código de Barras">
+                            <option value="Nobreak">
+                            <option value="Impressora Laser">
+                            <option value="Balança">
+                            <option value="Computador / Mini-PC">
+                            <option value="Switch / Roteador">
+                        </datalist>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Filial de Origem *</label>
+                        <input type="text" id="itemOriginBranch" required placeholder="Ex: AGROVETERINARIA - CABECEIRAS GO" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 uppercase">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Setor de Origem</label>
+                        <input type="text" id="itemOriginDept" placeholder="Ex: Vendas, Balcão, Caixa" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Valor Contábil / Estimado (R$)</label>
+                        <input type="number" step="0.01" min="0" id="itemValue" placeholder="4198.12" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Estado de Conservação (EC)</label>
+                        <select id="itemEc" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                            <option value="Bom" selected>Bom</option>
+                            <option value="Regular">Regular</option>
+                            <option value="Ruim">Ruim</option>
+                            <option value="Inoperante">Inoperante</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Defeito Relatado / Problema</label>
+                    <textarea id="itemDefect" rows="2" placeholder="Descreva o sintoma ou problema que o equipamento apresenta..." class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100"></textarea>
+                </div>
+
+                <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalItem')" class="px-4 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-300">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold">Salvar Equipamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: ATUALIZAR NOTA FISCAL & STATUS ==================== -->
+    <div id="modalInvoice" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-dark-700 pb-3">
+                <h3 class="text-sm font-bold text-white">Informar Nota Fiscal e Status</h3>
+                <button onclick="closeModal('modalInvoice')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="formInvoice" onsubmit="submitInvoiceForm(event)" class="space-y-3 text-xs">
+                <input type="hidden" id="invoiceReqId">
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Status da Solicitação</label>
+                    <select id="invoiceStatus" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-semibold">
+                        <option value="aguardando_nf">Aguardando NF de Saída</option>
+                        <option value="em_conserto">Enviado / Em Conserto na Terceirizada</option>
+                        <option value="retornado">Retornado do Conserto (Finalizado)</option>
+                    </select>
+                </div>
+
+                <div class="border-t border-dark-700/60 pt-3">
+                    <p class="font-bold text-amber-400 mb-2">Saída (Emissão pelo Depto de Notas):</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Nº NF de Saída</label>
+                            <input type="text" id="invNumOut" placeholder="Ex: NF 14592" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Data Emissão Saída</label>
+                            <input type="date" id="invDateOut" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="border-t border-dark-700/60 pt-3">
+                    <p class="font-bold text-emerald-400 mb-2">Retorno (Quando a terceirizada devolver):</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Nº NF de Retorno</label>
+                            <input type="text" id="invNumIn" placeholder="Ex: NF 8721" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Data de Retorno</label>
+                            <input type="date" id="invDateIn" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalInvoice')" class="px-4 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-300">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold">Salvar Dados</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: TERCEIRIZADA ==================== -->
+    <div id="modalProvider" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-dark-700 pb-3">
+                <h3 class="text-sm font-bold text-white">Cadastrar Empresa Terceirizada</h3>
+                <button onclick="closeModal('modalProvider')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="formProvider" onsubmit="submitProviderForm(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Razão Social *</label>
+                    <input type="text" id="provName" required placeholder="Ex: ARILMAQ LTDA" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 uppercase">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Nome Fantasia / Identificação</label>
+                    <input type="text" id="provTrade" placeholder="Ex: ARILMAQ JOÃO PINHEIRO" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 uppercase">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">CNPJ</label>
+                        <input type="text" id="provCnpj" placeholder="18.278.820/0008-81" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Inscrição Estadual</label>
+                        <input type="text" id="provIe" placeholder="5122984710627" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Endereço Completo</label>
+                    <input type="text" id="provAddress" placeholder="Av. Juca Cordeiro 615 loja 01 centro" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="col-span-2">
+                        <label class="block font-medium text-slate-300 mb-1">Cidade / UF</label>
+                        <input type="text" id="provCity" placeholder="João Pinheiro - MG" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">CEP</label>
+                        <input type="text" id="provCep" placeholder="38770-000" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Telefone</label>
+                        <input type="text" id="provPhone" placeholder="38 3561-1894" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">E-mail</label>
+                        <input type="email" id="provEmail" placeholder="contato@empresa.com" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalProvider')" class="px-4 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-300">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold">Salvar Terceirizada</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: TRANSPORTADORA ==================== -->
+    <div id="modalCarrier" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl max-w-md w-full shadow-2xl p-6 space-y-4">
+            <div class="flex items-center justify-between border-b border-dark-700 pb-3">
+                <h3 class="text-sm font-bold text-white">Cadastrar Transportadora (Frete)</h3>
+                <button onclick="closeModal('modalCarrier')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="formCarrier" onsubmit="submitCarrierForm(event)" class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Razão Social / Identificação *</label>
+                    <input type="text" id="carrName" required placeholder="Ex: TRANSPORTADOS PELA VIAÇÃO SERTANEJA" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 uppercase">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">CNPJ</label>
+                        <input type="text" id="carrCnpj" placeholder="16.505.190/0001-39" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Inscrição Estadual</label>
+                        <input type="text" id="carrIe" placeholder="002.090082.0071" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 font-mono">
+                    </div>
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Telefone / Contato</label>
+                    <input type="text" id="carrPhone" placeholder="Telefone ou ponto de entrega" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2 text-slate-100">
+                </div>
+
+                <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeModal('modalCarrier')" class="px-4 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-300">Cancelar</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold">Salvar Transportadora</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts da Aplicação -->
+    <script src="/static/rma/js/app.js"></script>
+</body>
+</html>

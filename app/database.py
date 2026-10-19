@@ -132,6 +132,104 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE SET NULL
 );
+
+CREATE TABLE IF NOT EXISTS rma_providers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    trade_name TEXT DEFAULT '',
+    cnpj TEXT DEFAULT '',
+    state_registration TEXT DEFAULT '',
+    contact_name TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    email TEXT DEFAULT '',
+    address TEXT DEFAULT '',
+    district TEXT DEFAULT '',
+    city TEXT DEFAULT '',
+    state TEXT DEFAULT '',
+    cep TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS rma_carriers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    trade_name TEXT DEFAULT '',
+    cnpj TEXT DEFAULT '',
+    state_registration TEXT DEFAULT '',
+    phone TEXT DEFAULT '',
+    contact_name TEXT DEFAULT '',
+    notes TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS rma_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patrimony_number TEXT NOT NULL,
+    serial_number TEXT DEFAULT '',
+    item_code TEXT DEFAULT '',
+    description TEXT NOT NULL,
+    brand TEXT DEFAULT '',
+    model TEXT DEFAULT '',
+    item_type TEXT DEFAULT 'Outro',
+    origin_branch TEXT NOT NULL DEFAULT 'Matriz',
+    origin_department TEXT DEFAULT '',
+    ec TEXT DEFAULT 'Bom',
+    estimated_value REAL DEFAULT 0.0,
+    defect_reported TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'na_ti',
+    current_request_id INTEGER,
+    notes TEXT DEFAULT '',
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(current_request_id) REFERENCES rma_requests(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS rma_requests (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_number TEXT UNIQUE NOT NULL,
+    sender_name TEXT NOT NULL,
+    sender_department TEXT NOT NULL DEFAULT 'CPD',
+    provider_id INTEGER NOT NULL,
+    recipient_department TEXT NOT NULL DEFAULT 'MANUTENÇÃO',
+    subject_type TEXT NOT NULL DEFAULT 'conserto',
+    carrier_id INTEGER,
+    justification_notes TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'aguardando_nf',
+    invoice_out TEXT DEFAULT '',
+    invoice_out_date TEXT,
+    invoice_in TEXT DEFAULT '',
+    invoice_in_date TEXT,
+    repair_cost REAL DEFAULT 0.0,
+    created_by INTEGER,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(provider_id) REFERENCES rma_providers(id) ON DELETE RESTRICT,
+    FOREIGN KEY(carrier_id) REFERENCES rma_carriers(id) ON DELETE SET NULL,
+    FOREIGN KEY(created_by) REFERENCES users(id) ON DELETE SET NULL
+);
+
+CREATE TABLE IF NOT EXISTS rma_request_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id INTEGER NOT NULL,
+    item_id INTEGER NOT NULL,
+    patrimony_number TEXT NOT NULL,
+    description TEXT NOT NULL,
+    serial_number TEXT DEFAULT '',
+    item_code TEXT DEFAULT '',
+    origin_branch TEXT DEFAULT '',
+    ec TEXT DEFAULT '',
+    value REAL DEFAULT 0.0,
+    defect_notes TEXT DEFAULT '',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(request_id) REFERENCES rma_requests(id) ON DELETE CASCADE,
+    FOREIGN KEY(item_id) REFERENCES rma_items(id) ON DELETE RESTRICT
+);
 """
 
 @asynccontextmanager
@@ -379,6 +477,81 @@ async def init_db():
 
         # Garantir que o usuário 'admin' tenha allowed_modules = 'all'
         await db.execute("UPDATE users SET allowed_modules = 'all' WHERE role = 'admin' AND allowed_modules != 'all'")
+
+        # Seed inicial do módulo RMA (Terceirizada e Transportadora padrão)
+        now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        cur_prov = await db.execute("SELECT COUNT(*) FROM rma_providers")
+        if (await cur_prov.fetchone())[0] == 0:
+            await db.execute(
+                """
+                INSERT INTO rma_providers (
+                    name, trade_name, cnpj, state_registration, phone, address, district, city, state, cep, notes, is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+                """,
+                (
+                    "ARILMAQ LTDA",
+                    "ARILMAQ JOÃO PINHEIRO",
+                    "18.278.820/0008-81",
+                    "5122984710627",
+                    "38 3561-1894",
+                    "Av. Juca Cordeiro 615 loja 01",
+                    "Centro",
+                    "João Pinheiro",
+                    "MG",
+                    "38770-000",
+                    "Assistência técnica terceirizada para impressoras e equipamentos",
+                    now_str, now_str
+                )
+            )
+            logger.info("Fornecedor padrão ARILMAQ inserido com sucesso.")
+
+        cur_carr = await db.execute("SELECT COUNT(*) FROM rma_carriers")
+        if (await cur_carr.fetchone())[0] == 0:
+            await db.execute(
+                """
+                INSERT INTO rma_carriers (
+                    name, trade_name, cnpj, state_registration, phone, notes, is_active, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+                """,
+                (
+                    "TRANSPORTADOS PELA VIAÇÃO SERTANEJA",
+                    "VIAÇÃO SERTANEJA",
+                    "16.505.190/0001-39",
+                    "002.090082.0071",
+                    "",
+                    "Transportadora de frete intermunicipal/interestadual",
+                    now_str, now_str
+                )
+            )
+            logger.info("Transportadora padrão VIAÇÃO SERTANEJA inserida com sucesso.")
+
+        # Seed de item exemplo caso a tabela esteja vazia
+        cur_items = await db.execute("SELECT COUNT(*) FROM rma_items")
+        if (await cur_items.fetchone())[0] == 0:
+            await db.execute(
+                """
+                INSERT INTO rma_items (
+                    patrimony_number, serial_number, item_code, description, brand, model,
+                    item_type, origin_branch, origin_department, ec, estimated_value,
+                    defect_reported, status, created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'na_ti', ?, ?)
+                """,
+                (
+                    "00011460",
+                    "52J16400599",
+                    "00087720",
+                    "IMPRESSORA ZEBRA ZT230 203",
+                    "Zebra",
+                    "ZT230",
+                    "Impressora Térmica",
+                    "AGROVETERINARIA - CABECEIRAS GO",
+                    "Vendas",
+                    "Bom",
+                    4198.12,
+                    "Falha no cabeçote térmico / Não traciona etiquetas",
+                    now_str, now_str
+                )
+            )
 
         await db.commit()
     logger.info("Banco de dados SQLite unificado inicializado com sucesso em %s", DB_PATH)

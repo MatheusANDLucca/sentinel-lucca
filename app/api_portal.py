@@ -13,6 +13,7 @@ async def get_portal_summary(current_user: dict = Depends(get_current_user)):
 
     cftv_access = (role == "admin" or allowed == "all" or "cftv" in user_modules)
     printers_access = (role == "admin" or allowed == "all" or "printers" in user_modules)
+    rma_access = (role == "admin" or allowed == "all" or "rma" in user_modules)
 
     cftv_summary = {
         "has_access": cftv_access,
@@ -31,6 +32,14 @@ async def get_portal_summary(current_user: dict = Depends(get_current_user)):
         "warning": 0,
         "branches": 0,
         "sla": 100.0
+    }
+
+    rma_summary = {
+        "has_access": rma_access,
+        "items_na_ti": 0,
+        "items_em_conserto": 0,
+        "requests_aguardando_nf": 0,
+        "total_requests": 0
     }
 
     async with get_db_connection() as db:
@@ -89,6 +98,32 @@ async def get_portal_summary(current_user: dict = Depends(get_current_user)):
                 "sla": p_sla
             })
 
+        # Se tiver acesso a RMA, coletar métricas rápidas
+        if rma_access:
+            r_cur = await db.execute("""
+                SELECT 
+                    SUM(CASE WHEN status = 'na_ti' THEN 1 ELSE 0 END) as na_ti,
+                    SUM(CASE WHEN status IN ('em_conserto', 'aguardando_nf') THEN 1 ELSE 0 END) as em_conserto
+                FROM rma_items
+                WHERE is_active = 1
+            """)
+            r_row = await r_cur.fetchone()
+
+            q_cur = await db.execute("""
+                SELECT 
+                    COUNT(*) as total_requests,
+                    SUM(CASE WHEN status = 'aguardando_nf' THEN 1 ELSE 0 END) as aguardando_nf
+                FROM rma_requests
+            """)
+            q_row = await q_cur.fetchone()
+
+            rma_summary.update({
+                "items_na_ti": r_row["na_ti"] or 0,
+                "items_em_conserto": r_row["em_conserto"] or 0,
+                "requests_aguardando_nf": q_row["aguardando_nf"] or 0,
+                "total_requests": q_row["total_requests"] or 0
+            })
+
     return {
         "user": {
             "id": current_user["id"],
@@ -98,5 +133,6 @@ async def get_portal_summary(current_user: dict = Depends(get_current_user)):
             "allowed_modules": allowed
         },
         "cftv": cftv_summary,
-        "printers": printers_summary
+        "printers": printers_summary,
+        "rma": rma_summary
     }

@@ -83,6 +83,7 @@ function updateUserUI() {
     let modText = "Todos os Módulos";
     if (currentUser.allowed_modules === "cftv") modText = "Apenas CFTV Sentinel";
     if (currentUser.allowed_modules === "printers") modText = "Apenas Print Sentinel";
+    if (currentUser.allowed_modules === "rma") modText = "Apenas Controle Patrimonial (RMA)";
     document.getElementById('dropModules').textContent = `Acesso: ${modText}`;
 
     // Avatar
@@ -202,7 +203,7 @@ function renderSummaryUI() {
         printBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span><span>${printers.online}/${printers.total} Online (${printers.sla}%)</span>`;
 
         printBtn.disabled = false;
-        printBtn.className = "w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold py-3 px-5 rounded-2xl shadow-lg shadow-cyan-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3 cursor-pointer";
+        printBtn.className = "w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold py-3 px-4 rounded-2xl shadow-lg shadow-cyan-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3 cursor-pointer text-xs sm:text-sm";
         printBtn.innerHTML = `<span>Acessar Print Sentinel</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
     } else {
         printCard.classList.add('locked');
@@ -214,8 +215,40 @@ function renderSummaryUI() {
         printBadge.innerHTML = `<i data-lucide="lock" class="w-3.5 h-3.5"></i><span>Acesso Restrito</span>`;
 
         printBtn.disabled = true;
-        printBtn.className = "w-full bg-dark-800 text-slate-500 font-semibold py-3 px-5 rounded-2xl border border-white/5 transition flex items-center justify-center gap-2 cursor-not-allowed";
+        printBtn.className = "w-full bg-dark-800 text-slate-500 font-semibold py-3 px-4 rounded-2xl border border-white/5 transition flex items-center justify-center gap-2 cursor-not-allowed text-xs sm:text-sm";
         printBtn.innerHTML = `<i data-lucide="lock" class="w-4 h-4"></i><span>Módulo não permitido</span>`;
+    }
+
+    // 3. CARD CONTROLE PATRIMONIAL & RMA
+    const rmaCard = document.getElementById('rmaCard');
+    const rmaBadge = document.getElementById('rmaStatusBadge');
+    const rmaBtn = document.getElementById('rmaActionBtn');
+    const rma = currentSummary.rma || { has_access: false, items_na_ti: 0, items_em_conserto: 0, requests_aguardando_nf: 0 };
+
+    if (rma.has_access) {
+        rmaCard.classList.remove('locked');
+        document.getElementById('rmaItemsTI').textContent = rma.items_na_ti;
+        document.getElementById('rmaInRepair').textContent = rma.items_em_conserto;
+        document.getElementById('rmaAguardandoNF').textContent = rma.requests_aguardando_nf;
+
+        rmaBadge.className = "text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center gap-1.5";
+        rmaBadge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span><span>${rma.items_em_conserto} em conserto (${rma.requests_aguardando_nf} pend. NF)</span>`;
+
+        rmaBtn.disabled = false;
+        rmaBtn.className = "w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold py-3 px-4 rounded-2xl shadow-lg shadow-amber-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3 cursor-pointer text-xs sm:text-sm";
+        rmaBtn.innerHTML = `<span>Acessar Patrimônio & RMA</span><i data-lucide="arrow-right" class="w-4 h-4"></i>`;
+    } else {
+        rmaCard.classList.add('locked');
+        document.getElementById('rmaItemsTI').textContent = "-";
+        document.getElementById('rmaInRepair').textContent = "-";
+        document.getElementById('rmaAguardandoNF').textContent = "-";
+
+        rmaBadge.className = "text-[11px] font-semibold px-2.5 py-1 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-1.5";
+        rmaBadge.innerHTML = `<i data-lucide="lock" class="w-3.5 h-3.5"></i><span>Acesso Restrito</span>`;
+
+        rmaBtn.disabled = true;
+        rmaBtn.className = "w-full bg-dark-800 text-slate-500 font-semibold py-3 px-4 rounded-2xl border border-white/5 transition flex items-center justify-center gap-2 cursor-not-allowed text-xs sm:text-sm";
+        rmaBtn.innerHTML = `<i data-lucide="lock" class="w-4 h-4"></i><span>Módulo não permitido</span>`;
     }
 
     lucide.createIcons();
@@ -236,7 +269,7 @@ function initWebSocket() {
     ws.onmessage = (event) => {
         try {
             const data = JSON.parse(event.data);
-            if (data.type === 'BATCH_STATUS_UPDATE' || data.type === 'CYCLE_COMPLETED' || data.type === 'RECORDER_ALERT' || data.type === 'PRINTER_STATUS_CHANGED') {
+            if (data.type === 'BATCH_STATUS_UPDATE' || data.type === 'CYCLE_COMPLETED' || data.type === 'RECORDER_ALERT' || data.type === 'PRINTER_STATUS_CHANGED' || (data.type && data.type.startsWith('RMA_'))) {
                 loadSummary();
             }
         } catch (e) {}
@@ -300,6 +333,8 @@ async function loadUsers() {
                 modBadge = '<span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">📹 Apenas CFTV</span>';
             } else if (u.allowed_modules === 'printers') {
                 modBadge = '<span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">🖨️ Apenas Impressoras</span>';
+            } else if (u.allowed_modules === 'rma') {
+                modBadge = '<span class="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">📦 Apenas Patrimônio/RMA</span>';
             }
 
             const statusBadge = u.is_active

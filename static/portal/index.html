@@ -134,10 +134,10 @@
         </div>
 
         <!-- Modules Cards Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto w-full">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full">
             
             <!-- CARD 1: CFTV SENTINEL -->
-            <div id="cftvCard" class="module-card cftv-hover rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group">
+            <div id="cftvCard" class="module-card cftv-hover rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden group">
                 <div class="absolute -right-12 -top-12 w-44 h-44 bg-blue-600/10 rounded-full blur-2xl group-hover:bg-blue-600/20 transition duration-500 pointer-events-none"></div>
 
                 <div>
@@ -153,37 +153,37 @@
                     </div>
 
                     <!-- Título e Descrição -->
-                    <h2 class="text-xl sm:text-2xl font-bold text-white group-hover:text-blue-400 transition">CFTV Sentinel</h2>
+                    <h2 class="text-xl font-bold text-white group-hover:text-blue-400 transition">CFTV Sentinel</h2>
                     <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
                         Monitoramento de gravadores e câmeras de segurança com alertas e diagnóstico de HDs.
                     </p>
 
                     <!-- Métricas Rápidas -->
-                    <div class="grid grid-cols-3 gap-3 mt-6 mb-8 py-4 border-y border-white/5 bg-dark-950/40 rounded-2xl px-4">
+                    <div class="grid grid-cols-3 gap-2 mt-6 mb-8 py-3.5 border-y border-white/5 bg-dark-950/40 rounded-2xl px-3 text-center">
                         <div>
                             <div class="text-[10px] uppercase font-semibold text-slate-400">Total</div>
-                            <div class="text-lg font-extrabold text-white" id="cftvTotal">--</div>
+                            <div class="text-base font-extrabold text-white" id="cftvTotal">--</div>
                         </div>
                         <div>
                             <div class="text-[10px] uppercase font-semibold text-emerald-400">Online</div>
-                            <div class="text-lg font-extrabold text-emerald-400" id="cftvOnline">--</div>
+                            <div class="text-base font-extrabold text-emerald-400" id="cftvOnline">--</div>
                         </div>
                         <div>
                             <div class="text-[10px] uppercase font-semibold text-rose-400">Offline</div>
-                            <div class="text-lg font-extrabold text-rose-400" id="cftvOffline">--</div>
+                            <div class="text-base font-extrabold text-rose-400" id="cftvOffline">--</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Botão de Ação -->
-                <button id="cftvActionBtn" onclick="navigateTo('/cftv/')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 px-5 rounded-2xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3">
+                <button id="cftvActionBtn" onclick="navigateTo('/cftv/')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 px-4 rounded-2xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3 text-xs sm:text-sm">
                     <span>Acessar CFTV Sentinel</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </div>
 
             <!-- CARD 2: PRINT SENTINEL -->
-            <div id="printersCard" class="module-card print-hover rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group">
+            <div id="printersCard" class="module-card print-hover rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden group">
                 <div class="absolute -right-12 -top-12 w-44 h-44 bg-cyan-600/10 rounded-full blur-2xl group-hover:bg-cyan-600/20 transition duration-500 pointer-events-none"></div>
 
                 <div>
@@ -199,31 +199,77 @@
                     </div>
 
                     <!-- Título e Descrição -->
-                    <h2 class="text-xl sm:text-2xl font-bold text-white group-hover:text-cyan-400 transition">Print Sentinel</h2>
+                    <h2 class="text-xl font-bold text-white group-hover:text-cyan-400 transition">Print Sentinel</h2>
                     <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
                         Gestão de impressoras em rede por filiais com disparo de testes de impressão.
                     </p>
 
                     <!-- Métricas Rápidas -->
-                    <div class="grid grid-cols-3 gap-3 mt-6 mb-8 py-4 border-y border-white/5 bg-dark-950/40 rounded-2xl px-4">
+                    <div class="grid grid-cols-3 gap-2 mt-6 mb-8 py-3.5 border-y border-white/5 bg-dark-950/40 rounded-2xl px-3 text-center">
                         <div>
                             <div class="text-[10px] uppercase font-semibold text-slate-400">Total</div>
-                            <div class="text-lg font-extrabold text-white" id="printersTotal">--</div>
+                            <div class="text-base font-extrabold text-white" id="printersTotal">--</div>
                         </div>
                         <div>
                             <div class="text-[10px] uppercase font-semibold text-cyan-400">Online</div>
-                            <div class="text-lg font-extrabold text-cyan-400" id="printersOnline">--</div>
+                            <div class="text-base font-extrabold text-cyan-400" id="printersOnline">--</div>
                         </div>
                         <div>
                             <div class="text-[10px] uppercase font-semibold text-slate-400">Filiais</div>
-                            <div class="text-lg font-extrabold text-slate-200" id="printersBranches">--</div>
+                            <div class="text-base font-extrabold text-slate-200" id="printersBranches">--</div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Botão de Ação -->
-                <button id="printersActionBtn" onclick="navigateTo('/printers/')" class="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold py-3 px-5 rounded-2xl shadow-lg shadow-cyan-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3">
+                <button id="printersActionBtn" onclick="navigateTo('/printers/')" class="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold py-3 px-4 rounded-2xl shadow-lg shadow-cyan-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3 text-xs sm:text-sm">
                     <span>Acessar Print Sentinel</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- CARD 3: CONTROLE PATRIMONIAL & RMA -->
+            <div id="rmaCard" class="module-card rma-hover rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-12 -top-12 w-44 h-44 bg-amber-600/10 rounded-full blur-2xl group-hover:bg-amber-600/20 transition duration-500 pointer-events-none"></div>
+
+                <div>
+                    <!-- Header do Card -->
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center shadow-lg shadow-amber-500/30 border border-white/10 group-hover:scale-105 transition duration-300">
+                            <i data-lucide="package-check" class="w-7 h-7 text-white"></i>
+                        </div>
+                        <span id="rmaStatusBadge" class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
+                            <span>Carregando...</span>
+                        </span>
+                    </div>
+
+                    <!-- Título e Descrição -->
+                    <h2 class="text-xl font-bold text-white group-hover:text-amber-400 transition">Controle Patrimonial</h2>
+                    <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                        Envio e retorno de equipamentos para conserto com geração do formulário A4 oficial.
+                    </p>
+
+                    <!-- Métricas Rápidas -->
+                    <div class="grid grid-cols-3 gap-2 mt-6 mb-8 py-3.5 border-y border-white/5 bg-dark-950/40 rounded-2xl px-3 text-center">
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-slate-400">Na TI</div>
+                            <div class="text-base font-extrabold text-white" id="rmaItemsTI">--</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-amber-400">Conserto</div>
+                            <div class="text-base font-extrabold text-amber-400" id="rmaInRepair">--</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-purple-400">Aguard. NF</div>
+                            <div class="text-base font-extrabold text-purple-400" id="rmaAguardandoNF">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botão de Ação -->
+                <button id="rmaActionBtn" onclick="navigateTo('/rma')" class="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold py-3 px-4 rounded-2xl shadow-lg shadow-amber-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3 text-xs sm:text-sm">
+                    <span>Acessar Patrimônio & RMA</span>
                     <i data-lucide="arrow-right" class="w-4 h-4"></i>
                 </button>
             </div>
@@ -402,9 +448,10 @@
                     <label class="block font-bold text-cyan-400 mb-1">Acesso aos Módulos</label>
                     <p class="text-[11px] text-slate-300 mb-2">Defina se este colaborador terá acesso a apenas um módulo ou a todos:</p>
                     <select id="formAllowedModules" class="w-full bg-dark-950 border border-cyan-500/40 rounded-xl px-3 py-2.5 text-white font-medium focus:outline-none focus:border-cyan-400 text-xs">
-                        <option value="all">🌟 Todos os Módulos (CFTV + Impressoras)</option>
+                        <option value="all">🌟 Todos os Módulos (CFTV + Impressoras + Patrimônio)</option>
                         <option value="cftv">📹 Apenas CFTV Sentinel (Gravadores / Câmeras)</option>
                         <option value="printers">🖨️ Apenas Print Sentinel (Impressoras em Rede)</option>
+                        <option value="rma">📦 Apenas Controle Patrimonial (RMA / Consertos)</option>
                     </select>
                 </div>
 

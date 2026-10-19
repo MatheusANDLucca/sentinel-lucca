@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprimir Controle Patrimonial - Sentinel Lucca</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Roboto', 'Arial', sans-serif;
+            background-color: #f1f5f9;
+            color: #000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Barra de Ações (Oculta na Impressão) */
+        .no-print-bar {
+            width: 210mm;
+            max-width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f172a;
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .no-print-bar button {
+            background: #0284c7;
+            color: white;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.2s;
+        }
+
+        .no-print-bar button:hover {
+            background: #0369a1;
+        }
+
+        .no-print-bar .btn-back {
+            background: #334155;
+        }
+
+        .no-print-bar .btn-back:hover {
+            background: #475569;
+        }
+
+        /* Folha A4 Padrão */
+        .print-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            background: #ffffff;
+            padding: 15mm 15mm;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Títulos Principais */
+        .company-header {
+            text-align: center;
+            font-size: 20px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .doc-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        /* Tabela Principal do Formulário */
+        .form-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1.5px solid #000;
+            margin-bottom: 0px;
+        }
+
+        .form-table td, .form-table th {
+            border: 1px solid #000;
+            padding: 6px 10px;
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .row-header td {
+            width: 50%;
+            font-weight: 500;
+        }
+
+        .row-subject td {
+            font-weight: 500;
+            padding: 7px 10px;
+        }
+
+        /* Tabela de Itens */
+        .items-header th {
+            background: #ffffff;
+            font-weight: 700;
+            font-size: 13px;
+            text-align: left;
+            padding: 8px 10px;
+        }
+
+        .col-patrimonio { width: 22%; text-align: center; }
+        .col-descricao { width: 55%; }
+        .col-ec { width: 8%; text-align: center; }
+        .col-valor { width: 15%; text-align: right; }
+
+        .item-row td {
+            padding: 10px 10px;
+            font-size: 12.5px;
+            line-height: 1.4;
+        }
+
+        .item-patrimonio {
+            font-size: 15px;
+            font-weight: 700;
+            text-align: center;
+            padding-top: 14px !important;
+        }
+
+        .item-desc-title {
+            font-weight: 700;
+            font-size: 13px;
+            margin-bottom: 3px;
+        }
+
+        .item-subdetail {
+            font-size: 11.5px;
+            color: #111;
+        }
+
+        .item-valor {
+            font-weight: 600;
+            text-align: right;
+            padding-top: 14px !important;
+            white-space: nowrap;
+        }
+
+        /* Área de Justificativa e Fornecedor */
+        .justification-cell {
+            padding: 12px 14px !important;
+            min-height: 170px;
+            font-size: 12.5px;
+            line-height: 1.5;
+        }
+
+        .justification-label {
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .provider-details-block {
+            margin-left: 2px;
+            margin-bottom: 15px;
+        }
+
+        .provider-line-p {
+            font-weight: 700;
+        }
+
+        .transport-highlight-line {
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 10px;
+        }
+
+        /* Bloco Inferior da Transportadora */
+        .bottom-section {
+            display: flex;
+            justify-content: flex-end;
+            margin-top: -1px;
+        }
+
+        .carrier-box {
+            width: 60%;
+            border: 1.5px solid #000;
+            border-top: none;
+            padding: 12px 16px;
+            background: #fff;
+        }
+
+        .carrier-title {
+            font-size: 12.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .carrier-cnpj {
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            margin-bottom: 3px;
+        }
+
+        .carrier-ie {
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        /* Assinaturas */
+        .signatures-section {
+            margin-top: 45px;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 30px;
+        }
+
+        .signature-col {
+            width: 42%;
+            text-align: center;
+        }
+
+        .sig-line {
+            border-top: 1px solid #000;
+            margin-bottom: 5px;
+        }
+
+        .sig-name {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .sig-role {
+            font-size: 11px;
+            color: #444;
+        }
+
+        /* Regras de Impressão */
+        @media print {
+            body {
+                background: #ffffff !important;
+                padding: 0 !important;
+            }
+
+            .no-print-bar {
+                display: none !important;
+            }
+
+            .print-sheet {
+                box-shadow: none !important;
+                padding: 10mm 12mm !important;
+                width: 100% !important;
+                min-height: auto !important;
+            }
+
+            @page {
+                size: A4;
+                margin: 8mm;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barra Superior de Controle (Oculta na Impressão) -->
+    <div class="no-print-bar">
+        <div>
+            <strong>Controle Patrimonial #<span id="topReqNumber">Carregando...</span></strong>
+            <span style="font-size: 12px; color: #94a3b8; margin-left: 10px;">Visualização prévia de impressão (Formato A4)</span>
+        </div>
+        <div style="display: flex; gap: 10px;">
+            <button onclick="window.history.back()" class="btn-back">
+                &larr; Voltar
+            </button>
+            <button onclick="window.print()">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                    <rect x="6" y="14" width="12" height="8"></rect>
+                </svg>
+                Imprimir Documento
+            </button>
+        </div>
+    </div>
+
+    <!-- Folha A4 de Impressão -->
+    <div class="print-sheet" id="printSheet">
+        
+        <!-- Cabeçalho -->
+        <h1 class="company-header">COOPERATIVA AGROPECUÁRIA UNAÍ LTDA</h1>
+        <h2 class="doc-title">CONTROLE PATRIMONIAL</h2>
+
+        <!-- Tabela Estrutural -->
+        <table class="form-table">
+            <!-- Remetente e Destinatário -->
+            <tr class="row-header">
+                <td><strong>DE:</strong> <span id="valSenderName">CLENIO MARCOS</span></td>
+                <td><strong>PARA:</strong> <span id="valProviderName">ARILMAQ LTDA</span></td>
+            </tr>
+            <tr class="row-header">
+                <td><strong>SETOR:</strong> <span id="valSenderDept">CPD</span></td>
+                <td><strong>SETOR:</strong> <span id="valRecipientDept">MANUTENÇÃO</span></td>
+            </tr>
+
+            <!-- Assunto -->
+            <tr class="row-subject">
+                <td colspan="2">
+                    <strong>Assunto:</strong> 
+                    <span id="subjTransferencia">Transferência ( )</span>&nbsp;&nbsp;
+                    <span id="subjConserto">Conserto (X)</span>&nbsp;&nbsp;
+                    <span id="subjEmprestimo">Empréstimo ( )</span>&nbsp;&nbsp;
+                    <span id="subjBaixa">Pedido de Baixa ( )</span>
+                </td>
+            </tr>
+
+            <!-- Cabeçalhos da Tabela de Itens -->
+            <tr class="items-header">
+                <th class="col-patrimonio">N.º Patrimônio</th>
+                <th class="col-descricao">Descrição</th>
+                <th class="col-ec">EC</th>
+                <th class="col-valor">Valor</th>
+            </tr>
+
+            <!-- Linhas dos Itens (Injetadas via JS) -->
+            <tbody id="itemsTableBody">
+                <tr class="item-row">
+                    <td class="col-patrimonio item-patrimonio">00011460</td>
+                    <td class="col-descricao">
+                        <div class="item-desc-title">IMPRESSORA ZEBRA ZT230 203</div>
+                        <div class="item-subdetail">Código: 00087720</div>
+                        <div class="item-subdetail">No Serie: 52J16400599</div>
+                        <div class="item-subdetail">Local: AGROVETERINARIA - CABECEIRAS GO</div>
+                    </td>
+                    <td class="col-ec" style="text-align: center; padding-top: 14px;">Bom</td>
+                    <td class="col-valor item-valor">R$ 4.198,12</td>
+                </tr>
+            </tbody>
+
+            <!-- Justificativa / Observação e Dados de Envio -->
+            <tr>
+                <td colspan="4" class="justification-cell">
+                    <div class="justification-label">Justificativa/Observação:</div>
+                    <div class="provider-details-block" id="justificationBlock">
+                        <div class="provider-line-p">P/</div>
+                        <div id="justProviderTrade" style="font-weight: 700;">ARILMAQ JOÃO PINHEIRO</div>
+                        <div id="justProviderAddress">Av. Juca Cordeiro 615 loja 01 centro</div>
+                        <div id="justProviderCity">João Pinheiro - MG</div>
+                        <div id="justProviderCnpj">CNPJ: 18.278.820/0008-81</div>
+                        <div id="justProviderIe">Inscrição Estadual: 5122984710627</div>
+                        <div id="justProviderPhone">Telefone: 38 3561-1894</div>
+                        <div id="justProviderCep">CEP: 38770-000</div>
+                        <div id="justCustomNotes" style="margin-top: 6px; font-style: italic;"></div>
+                        <div id="justCarrierHighlight" class="transport-highlight-line">TRANSPORTADOS PELA VIAÇÃO SERTANEJA</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+
+        <!-- Quadro Destacado Inferior da Transportadora / Frete -->
+        <div class="bottom-section">
+            <div class="carrier-box" id="carrierBox">
+                <div class="carrier-title" id="bottomCarrierName">TRANSPORTADOS PELA VIAÇÃO SERTANEJA</div>
+                <div class="carrier-cnpj" id="bottomCarrierCnpj">CNPJ: 16.505.190/0001-39</div>
+                <div class="carrier-ie" id="bottomCarrierIe">INSC. ESTADUAL: 002.090082.0071</div>
+            </div>
+        </div>
+
+        <!-- Seção de Assinaturas e Protocolo -->
+        <div class="signatures-section">
+            <div class="signature-col">
+                <div class="sig-line"></div>
+                <div class="sig-name" id="sigSenderName">CLENIO MARCOS</div>
+                <div class="sig-role">CPD / Solicitante</div>
+            </div>
+            <div class="signature-col">
+                <div class="sig-line"></div>
+                <div class="sig-name">DEPARTAMENTO DE NOTAS / FISCAL</div>
+                <div class="sig-role">Visto / Emissão de NF de Saída</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Obter ID da solicitação pela URL (ex: /rma/print/1 ou ?id=1)
+            let reqId = null;
+            const pathParts = window.location.pathname.split('/');
+            const lastPart = pathParts[pathParts.length - 1];
+            if (!isNaN(parseInt(lastPart))) {
+                reqId = parseInt(lastPart);
+            } else {
+                const params = new URLSearchParams(window.location.search);
+                reqId = params.get('id');
+            }
+
+            if (!reqId) {
+                // Se nenhum ID for passado, carregar a solicitação mais recente
+                try {
+                    const r = await fetch('/api/rma/requests');
+                    if (r.ok) {
+                        const list = await r.json();
+                        if (list.length > 0) reqId = list[0].id;
+                    }
+                } catch(e) {}
+            }
+
+            if (reqId) {
+                await loadPrintData(reqId);
+            }
+        });
+
+        function formatCurrency(val) {
+            return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        async function loadPrintData(id) {
+            try {
+                const res = await fetch(`/api/rma/requests/${id}/print-data`);
+                if (!res.ok) throw new Error('Não foi possível carregar os dados da solicitação.');
+                const data = await res.json();
+                const req = data.request;
+
+                document.getElementById('topReqNumber').textContent = req.request_number;
+                document.getElementById('valSenderName').textContent = (req.sender_name || 'CLENIO MARCOS').toUpperCase();
+                document.getElementById('valSenderDept').textContent = (req.sender_department || 'CPD').toUpperCase();
+                document.getElementById('sigSenderName').textContent = (req.sender_name || 'CLENIO MARCOS').toUpperCase();
+
+                document.getElementById('valProviderName').textContent = (req.provider_name || 'ARILMAQ LTDA').toUpperCase();
+                document.getElementById('valRecipientDept').textContent = (req.recipient_department || 'MANUTENÇÃO').toUpperCase();
+
+                // Marcar o assunto correto
+                const st = (req.subject_type || 'conserto').toLowerCase();
+                document.getElementById('subjTransferencia').textContent = `Transferência (${st === 'transferencia' ? 'X' : ' '})`;
+                document.getElementById('subjConserto').textContent = `Conserto (${st === 'conserto' ? 'X' : ' '})`;
+                document.getElementById('subjEmprestimo').textContent = `Empréstimo (${st === 'emprestimo' ? 'X' : ' '})`;
+                document.getElementById('subjBaixa').textContent = `Pedido de Baixa (${st === 'baixa' ? 'X' : ' '})`;
+
+                // Renderizar Itens
+                const tbody = document.getElementById('itemsTableBody');
+                if (req.items && req.items.length > 0) {
+                    tbody.innerHTML = req.items.map(it => `
+                        <tr class="item-row">
+                            <td class="col-patrimonio item-patrimonio">${it.patrimony_number}</td>
+                            <td class="col-descricao">
+                                <div class="item-desc-title">${it.description.toUpperCase()}</div>
+                                ${it.item_code ? `<div class="item-subdetail">Código: ${it.item_code}</div>` : ''}
+                                ${it.serial_number ? `<div class="item-subdetail">No Serie: ${it.serial_number}</div>` : ''}
+                                ${it.origin_branch ? `<div class="item-subdetail">Local: ${it.origin_branch.toUpperCase()}</div>` : ''}
+                                ${it.defect_notes ? `<div class="item-subdetail" style="font-weight:600; color:#b91c1c;">Defeito: ${it.defect_notes}</div>` : ''}
+                            </td>
+                            <td class="col-ec" style="text-align: center; padding-top: 14px;">${it.ec || 'Bom'}</td>
+                            <td class="col-valor item-valor">${formatCurrency(it.value)}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Justificativa / Endereço do Destinatário
+                document.getElementById('justProviderTrade').textContent = (req.provider_trade_name || req.provider_name || '').toUpperCase();
+                document.getElementById('justProviderAddress').textContent = req.provider_address || '';
+                document.getElementById('justProviderCity').textContent = req.provider_city ? `${req.provider_city} - ${req.provider_state || 'MG'}` : '';
+                document.getElementById('justProviderCnpj').textContent = req.provider_cnpj ? `CNPJ: ${req.provider_cnpj}` : '';
+                document.getElementById('justProviderIe').textContent = req.provider_ie ? `Inscrição Estadual: ${req.provider_ie}` : '';
+                document.getElementById('justProviderPhone').textContent = req.provider_phone ? `Telefone: ${req.provider_phone}` : '';
+                document.getElementById('justProviderCep').textContent = req.provider_cep ? `CEP: ${req.provider_cep}` : '';
+                
+                if (req.justification_notes) {
+                    document.getElementById('justCustomNotes').textContent = `Obs: ${req.justification_notes}`;
+                }
+
+                const carrierName = req.carrier_name || 'VIAÇÃO SERTANEJA';
+                document.getElementById('justCarrierHighlight').textContent = `TRANSPORTADOS PELA ${carrierName.toUpperCase().replace('TRANSPORTADOS PELA ', '')}`;
+
+                // Bloco Inferior da Transportadora
+                document.getElementById('bottomCarrierName').textContent = carrierName.toUpperCase();
+                document.getElementById('bottomCarrierCnpj').textContent = req.carrier_cnpj ? `CNPJ: ${req.carrier_cnpj}` : 'CNPJ: -';
+                document.getElementById('bottomCarrierIe').textContent = req.carrier_ie ? `INSC. ESTADUAL: ${req.carrier_ie}` : 'INSC. ESTADUAL: -';
+
+            } catch (err) {
+                console.error('Erro ao carregar dados:', err);
+                alert('Erro ao carregar documento para impressão.');
+            }
+        }
+    </script>
+</body>
+</html>

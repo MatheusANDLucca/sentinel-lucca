@@ -16,6 +16,7 @@ from app.api_admin import router as admin_router
 from app.api_portal import router as portal_router
 from app.api_cftv import router as cftv_router
 from app.api_printers import router as printers_router
+from app.api_rma import router as rma_router
 
 # Configuração de Logs
 logging.basicConfig(
@@ -26,7 +27,7 @@ logger = logging.getLogger("sentinel.main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Iniciando Projeto Sentinel Lucca (CFTV + Impressoras)...")
+    logger.info("Iniciando Projeto Sentinel Lucca (CFTV + Impressoras + RMA Patrimonial)...")
     await init_db()
     await cftv_worker.start()
     await printer_worker.start()
@@ -37,8 +38,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="Projeto Sentinel Lucca",
-    description="Sistema Centralizado de CFTV, Câmeras, Gravadores DVR/NVR e Gestão de Impressoras em Rede.",
-    version="2.0.0",
+    description="Sistema Centralizado de CFTV, Impressoras em Rede e Controle Patrimonial / RMA.",
+    version="2.1.0",
     lifespan=lifespan
 )
 
@@ -57,11 +58,13 @@ app.include_router(admin_router)
 app.include_router(portal_router)
 app.include_router(cftv_router)
 app.include_router(printers_router)
+app.include_router(rma_router)
 
 # WebSocket Unificado e Endpoints Específicos
 @app.websocket("/ws")
 @app.websocket("/ws/cftv")
 @app.websocket("/ws/printers")
+@app.websocket("/ws/rma")
 async def websocket_endpoint(websocket: WebSocket):
     await ws_manager.connect(websocket)
     try:
@@ -99,6 +102,16 @@ async def serve_cftv():
 @app.get("/printers/")
 async def serve_printers():
     return FileResponse(str(STATIC_DIR / "printers" / "index.html"))
+
+@app.get("/rma")
+@app.get("/rma/")
+async def serve_rma():
+    return FileResponse(str(STATIC_DIR / "rma" / "index.html"))
+
+@app.get("/rma/print")
+@app.get("/rma/print/{request_id}")
+async def serve_rma_print(request_id: Optional[int] = None):
+    return FileResponse(str(STATIC_DIR / "rma" / "print.html"))
 
 if __name__ == "__main__":
     import uvicorn

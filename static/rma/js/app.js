@@ -1,0 +1,791 @@
+/**
+ * Sentinel Lucca - RMA & Controle Patrimonial
+ * Lógica Frontend Completa com Autenticação, WebSockets e Geração de Documentos
+ */
+
+let currentUser = null;
+let currentTab = 'requests';
+let providers = [];
+let carriers = [];
+let items = [];
+let requests = [];
+let searchTimeout = null;
+let ws = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+    initClock();
+    const ok = await checkAuth();
+    if (!ok) return;
+
+    await loadStats();
+    await loadRequests();
+    await loadProviders();
+    await loadCarriers();
+    initWebSocket();
+    lucide.createIcons();
+});
+
+function initClock() {
+    const clockEl = document.getElementById('liveClock');
+    function update() {
+        clockEl.textContent = new Date().toLocaleTimeString('pt-BR');
+    }
+    update();
+    setInterval(update, 1000);
+}
+
+// ==================== AUTENTICAÇÃO ====================
+
+function getToken() {
+    return localStorage.getItem('sentinel_token') || localStorage.getItem('cftv_token') || localStorage.getItem('print_token');
+}
+
+function getAuthHeaders(includeJson = true) {
+    const headers = {};
+    const token = getToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (includeJson) {
+        headers['Content-Type'] = 'application/json';
+    }
+    return headers;
+}
+
+async function checkAuth() {
+    try {
+        const res = await fetch('/api/auth/me', { headers: getAuthHeaders(false) });
+        if (!res.ok) throw new Error('Não autenticado');
+
+        currentUser = await res.json();
+
+        // Validar permissão ao módulo RMA
+        const role = currentUser.role || 'operador';
+        const allowed = (currentUser.allowed_modules || 'all').toLowerCase();
+        if (role !== 'admin' && allowed !== 'all' && !allowed.includes('rma')) {
+            alert('Acesso negado: Seu usuário não tem permissão para acessar o módulo de Controle Patrimonial / RMA.');
+            window.location.href = '/portal';
+            return false;
+        }
+
+        updateUserUI();
+        return true;
+    } catch (e) {
+        localStorage.removeItem('sentinel_token');
+        window.location.href = '/login.html';
+        return false;
+    }
+}
+
+function updateUserUI() {
+    if (!currentUser) return;
+    const name = currentUser.full_name || currentUser.username;
+    document.getElementById('headerUserName').textContent = name;
+    document.getElementById('dropFullName').textContent = name;
+    document.getElementById('dropUsername').textContent = `@${currentUser.username}`;
+    document.getElementById('headerUserRole').textContent = currentUser.role.toUpperCase();
+
+    const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+    document.getElementById('userAvatar').textContent = initials;
+}
+
+function toggleUserDropdown() {
+    document.getElementById('userDropdown').classList.toggle('hidden');
+}
+
+document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('userDropdown');
+    const btn = dropdown?.previousElementSibling;
+    if (dropdown && !dropdown.contains(e.target) && !btn?.contains(e.target)) {
+        dropdown.classList.add('hidden');
+    }
+});
+
+async function handleLogout() {
+    try {
+        await fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeaders(false) });
+    } catch (e) {}
+    localStorage.removeItem('sentinel_token');
+    window.location.href = '/login.html';
+}
+
+// ==================== WEBSOCKET ====================
+
+function initWebSocket() {
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws/rma`;
+    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => console.log('WebSocket RMA conectado.');
+    ws.onmessage = (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.type && data.type.startsWith('RMA_')) {
+                loadStats();
+                if (currentTab === 'requests') loadRequests();
+                if (currentTab === 'items') loadItems();
+            }
+        } catch (e) {}
+    };
+    ws.onclose = () => {
+        setTimeout(initWebSocket, 5000);
+    };
+}
+
+// ==================== NAVEGAÇÃO DE TABS ====================
+
+function switchTab(tabName) {
+    currentTab = tabName;
+    ['requests', 'items', 'providers', 'carriers'].forEach(t => {
+        const btn = document.getElementById(`tabBtn-${t}`);
+        const content = document.getElementById(`tabContent-${t}`);
+        if (t === tabName) {
+            btn.classList.add('active-tab');
+            content.classList.remove('hidden');
+        } else {
+            btn.classList.remove('active-tab');
+            content.classList.add('hidden');
+        }
+    });
+
+    if (tabName === 'requests') loadRequests();
+    if (tabName === 'items') loadItems();
+    if (tabName === 'providers') loadProviders();
+    if (tabName === 'carriers') loadCarriers();
+    lucide.createIcons();
+}
+
+function formatCurrency(val) {
+    return (val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// ==================== KPIS E ESTATÍSTICAS ====================
+
+async function loadStats() {
+    try {
+        const res = await fetch('/api/rma/stats', { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            const d = await res.json();
+            document.getElementById('kpiItemsNaTi').textContent = d.items_na_ti;
+            document.getElementById('kpiReqsAguardandoNf').textContent = d.requests_aguardando_nf;
+            document.getElementById('kpiItemsEmConserto').textContent = d.items_em_conserto;
+            document.getElementById('kpiTotalRequests').textContent = d.total_requests;
+        }
+    } catch (e) {
+        console.error('Erro ao buscar stats RMA:', e);
+    }
+}
+
+// ==================== TAB 1: SOLICITAÇÕES ====================
+
+function getStatusBadge(st) {
+    st = (st || 'aguardando_nf').toLowerCase();
+    if (st === 'aguardando_nf') {
+        return '<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Aguardando NF</span>';
+    } else if (st === 'em_conserto' || st === 'em_transito') {
+        return '<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30">Em Conserto</span>';
+    } else if (st === 'retornado') {
+        return '<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Retornado</span>';
+    }
+    return `<span class="px-2.5 py-1 rounded-md text-[11px] font-semibold bg-slate-800 text-slate-300">${st}</span>`;
+}
+
+async function loadRequests() {
+    const filter = document.getElementById('filterRequestStatus').value;
+    const url = filter && filter !== 'all' ? `/api/rma/requests?status=${filter}` : '/api/rma/requests';
+
+    try {
+        const res = await fetch(url, { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            requests = await res.json();
+            renderRequestsTable();
+        }
+    } catch (e) {
+        console.error('Erro ao buscar solicitações:', e);
+    }
+}
+
+function renderRequestsTable() {
+    const tbody = document.getElementById('requestsTableBody');
+    const empty = document.getElementById('emptyRequests');
+
+    if (requests.length === 0) {
+        tbody.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+    }
+
+    empty.classList.add('hidden');
+    tbody.innerHTML = requests.map(r => {
+        const dateStr = r.created_at ? r.created_at.split(' ')[0] : '-';
+        return `
+            <tr class="hover:bg-dark-700/40 transition">
+                <td class="py-3 px-4 font-bold text-white select-all">${r.request_number}</td>
+                <td class="py-3 px-4 font-sans font-medium text-slate-200">
+                    <div>${escapeHtml(r.provider_name || 'Terceirizada')}</div>
+                    ${r.provider_cnpj ? `<div class="text-[10px] text-slate-400 font-mono">CNPJ: ${r.provider_cnpj}</div>` : ''}
+                </td>
+                <td class="py-3 px-4 font-sans text-slate-300">${escapeHtml(r.carrier_name || '-')}</td>
+                <td class="py-3 px-4 text-center font-bold text-cyan-400">${(r.items || []).length}</td>
+                <td class="py-3 px-4 text-slate-200 font-semibold">${formatCurrency(r.total_value)}</td>
+                <td class="py-3 px-4 font-sans">${getStatusBadge(r.status)}</td>
+                <td class="py-3 px-4 text-amber-300 font-bold">${r.invoice_out || '<span class="text-slate-500 font-normal">Pendente</span>'}</td>
+                <td class="py-3 px-4 text-slate-400">${dateStr}</td>
+                <td class="py-3 px-4 text-right font-sans">
+                    <div class="flex items-center justify-end gap-1.5">
+                        <!-- Imprimir Folha A4 Oficial -->
+                        <button onclick="printRequest(${r.id})" title="Imprimir / Gerar PDF Oficial" class="p-1.5 rounded-lg bg-dark-700 hover:bg-cyan-600 text-cyan-400 hover:text-white transition flex items-center gap-1 text-xs">
+                            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                            <span class="hidden xl:inline font-semibold">Imprimir</span>
+                        </button>
+
+                        <!-- Informar Nota Fiscal -->
+                        <button onclick="openInvoiceModal(${r.id})" title="Informar Nota Fiscal e Status" class="p-1.5 rounded-lg bg-dark-700 hover:bg-amber-600 text-amber-400 hover:text-white transition flex items-center gap-1 text-xs">
+                            <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
+                            <span class="hidden xl:inline font-semibold">NF</span>
+                        </button>
+
+                        <!-- Excluir Solicitação -->
+                        <button onclick="deleteRequest(${r.id}, '${r.request_number}')" title="Excluir Solicitação" class="p-1.5 rounded-lg bg-dark-700 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    lucide.createIcons();
+}
+
+function printRequest(id) {
+    window.open(`/rma/print/${id}`, '_blank');
+}
+
+async function deleteRequest(id, reqNumber) {
+    if (!confirm(`Deseja realmente cancelar e excluir a solicitação ${reqNumber}? Os equipamentos vinculados voltarão para o status 'Na TI'.`)) {
+        return;
+    }
+
+    try {
+        const res = await fetch(`/api/rma/requests/${id}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders(false)
+        });
+        if (res.ok) {
+            await loadRequests();
+            await loadStats();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Erro ao excluir solicitação.');
+        }
+    } catch (e) {
+        alert('Erro ao conectar com o servidor.');
+    }
+}
+
+// ==================== MODAL: NOVA SOLICITAÇÃO ====================
+
+async function openNewRequestModal() {
+    await loadProviders();
+    await loadCarriers();
+
+    // Carregar dropdowns de Terceirizada e Transportadora
+    const provSelect = document.getElementById('reqProviderId');
+    provSelect.innerHTML = providers.map(p => `
+        <option value="${p.id}">${escapeHtml(p.name)} ${p.trade_name ? `(${escapeHtml(p.trade_name)})` : ''}</option>
+    `).join('');
+
+    const carrSelect = document.getElementById('reqCarrierId');
+    carrSelect.innerHTML = '<option value="">Sem Transportadora (Entrega Direta)</option>' + carriers.map(c => `
+        <option value="${c.id}">${escapeHtml(c.name)}</option>
+    `).join('');
+
+    // Carregar itens disponíveis na TI
+    try {
+        const res = await fetch('/api/rma/items?available_only=true', { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            const availItems = await res.json();
+            const container = document.getElementById('availableItemsContainer');
+            if (availItems.length === 0) {
+                container.innerHTML = `
+                    <p class="text-slate-400 text-center py-4">Nenhum equipamento disponível na TI.<br>
+                    <a href="javascript:void(0)" onclick="closeModal('modalNewRequest'); openItemModal();" class="text-cyan-400 hover:underline font-bold mt-1 inline-block">+ Cadastrar Equipamento</a></p>
+                `;
+            } else {
+                container.innerHTML = availItems.map(it => `
+                    <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-dark-800 transition cursor-pointer border border-transparent hover:border-dark-700">
+                        <input type="checkbox" name="reqItemCheck" value="${it.id}" onchange="updateSelectedItemsCount()" class="mt-1 rounded bg-dark-900 border-dark-600 text-amber-500 focus:ring-0">
+                        <div class="flex-1">
+                            <div class="flex items-center justify-between font-mono">
+                                <span class="font-bold text-white text-xs">Patr: ${it.patrimony_number}</span>
+                                <span class="text-cyan-400 text-xs font-semibold">${formatCurrency(it.estimated_value)}</span>
+                            </div>
+                            <div class="text-[11px] font-semibold text-slate-300 font-sans">${escapeHtml(it.description)}</div>
+                            <div class="text-[10px] text-slate-400 font-sans flex items-center gap-2">
+                                <span>NS: ${it.serial_number || '-'}</span> &bull; 
+                                <span>${it.origin_branch}</span>
+                            </div>
+                            ${it.defect_reported ? `<div class="text-[10px] text-rose-400/90 font-sans">Defeito: ${escapeHtml(it.defect_reported)}</div>` : ''}
+                        </div>
+                    </label>
+                `).join('');
+            }
+        }
+    } catch (e) {}
+
+    updateSelectedItemsCount();
+    openModal('modalNewRequest');
+}
+
+function updateSelectedItemsCount() {
+    const checks = document.querySelectorAll('input[name="reqItemCheck"]:checked');
+    document.getElementById('selectedItemsCount').textContent = `${checks.length} selecionado(s)`;
+}
+
+async function submitNewRequest(e) {
+    e.preventDefault();
+    const checked = Array.from(document.querySelectorAll('input[name="reqItemCheck"]:checked')).map(c => parseInt(c.value));
+    if (checked.length === 0) {
+        alert('Por favor, selecione ao menos um equipamento para incluir na solicitação.');
+        return;
+    }
+
+    const payload = {
+        sender_name: document.getElementById('reqSenderName').value.trim(),
+        sender_department: document.getElementById('reqSenderDept').value.trim(),
+        provider_id: parseInt(document.getElementById('reqProviderId').value),
+        recipient_department: document.getElementById('reqRecipientDept').value.trim(),
+        subject_type: document.getElementById('reqSubjectType').value,
+        carrier_id: document.getElementById('reqCarrierId').value ? parseInt(document.getElementById('reqCarrierId').value) : null,
+        justification_notes: document.getElementById('reqJustification').value.trim(),
+        item_ids: checked
+    };
+
+    try {
+        const res = await fetch('/api/rma/requests', {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            const created = await res.json();
+            closeModal('modalNewRequest');
+            await loadRequests();
+            await loadStats();
+
+            // Abrir direto a tela de impressão do documento oficial!
+            if (confirm(`Solicitação ${created.request_number} criada com sucesso!\nDeseja visualizar e imprimir o documento A4 agora?`)) {
+                printRequest(created.id);
+            }
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Erro ao criar solicitação.');
+        }
+    } catch (e) {
+        alert('Erro ao conectar com o servidor.');
+    }
+}
+
+// ==================== MODAL: INFORMAR NOTA FISCAL ====================
+
+function openInvoiceModal(reqId) {
+    const req = requests.find(r => r.id === reqId);
+    if (!req) return;
+
+    document.getElementById('invoiceReqId').value = req.id;
+    document.getElementById('invoiceStatus').value = req.status || 'aguardando_nf';
+    document.getElementById('invNumOut').value = req.invoice_out || '';
+    document.getElementById('invDateOut').value = req.invoice_out_date || '';
+    document.getElementById('invNumIn').value = req.invoice_in || '';
+    document.getElementById('invDateIn').value = req.invoice_in_date || '';
+
+    openModal('modalInvoice');
+}
+
+async function submitInvoiceForm(e) {
+    e.preventDefault();
+    const id = document.getElementById('invoiceReqId').value;
+    const payload = {
+        status: document.getElementById('invoiceStatus').value,
+        invoice_out: document.getElementById('invNumOut').value.trim(),
+        invoice_out_date: document.getElementById('invDateOut').value || null,
+        invoice_in: document.getElementById('invNumIn').value.trim(),
+        invoice_in_date: document.getElementById('invDateIn').value || null
+    };
+
+    try {
+        const res = await fetch(`/api/rma/requests/${id}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            closeModal('modalInvoice');
+            await loadRequests();
+            await loadStats();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Erro ao atualizar dados da solicitação.');
+        }
+    } catch (e) {
+        alert('Erro de conexão ao salvar.');
+    }
+}
+
+// ==================== TAB 2: EQUIPAMENTOS / ITENS ====================
+
+function debounceSearchItems() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(loadItems, 300);
+}
+
+async function loadItems() {
+    const search = document.getElementById('searchItemInput')?.value || '';
+    const status = document.getElementById('filterItemStatus')?.value || 'all';
+
+    let url = '/api/rma/items?1=1';
+    if (search.trim()) url += `&search=${encodeURIComponent(search.trim())}`;
+    if (status && status !== 'all') url += `&status=${status}`;
+
+    try {
+        const res = await fetch(url, { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            items = await res.json();
+            renderItemsTable();
+        }
+    } catch (e) {
+        console.error('Erro ao buscar itens:', e);
+    }
+}
+
+function getItemStatusBadge(st) {
+    if (st === 'na_ti') {
+        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/30">Na TI (Disponível)</span>';
+    } else if (st === 'aguardando_nf') {
+        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">Aguardando NF</span>';
+    } else if (st === 'em_conserto') {
+        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-orange-500/15 text-orange-400 border border-orange-500/30">Em Conserto</span>';
+    } else if (st === 'retornado') {
+        return '<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">Retornado</span>';
+    }
+    return `<span class="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300">${st}</span>`;
+}
+
+function renderItemsTable() {
+    const tbody = document.getElementById('itemsTableBody');
+    const empty = document.getElementById('emptyItems');
+
+    if (items.length === 0) {
+        tbody.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+    }
+
+    empty.classList.add('hidden');
+    tbody.innerHTML = items.map(it => `
+        <tr class="hover:bg-dark-700/40 transition">
+            <td class="py-3 px-4 font-bold text-white select-all">${it.patrimony_number}</td>
+            <td class="py-3 px-4 font-sans font-semibold text-slate-200">
+                <div>${escapeHtml(it.description)}</div>
+                ${it.defect_reported ? `<div class="text-[10px] text-rose-400 font-normal">Defeito: ${escapeHtml(it.defect_reported)}</div>` : ''}
+            </td>
+            <td class="py-3 px-4 text-slate-300">${it.serial_number || '-'}</td>
+            <td class="py-3 px-4 text-slate-400">${it.item_code || '-'}</td>
+            <td class="py-3 px-4 font-sans text-slate-300">${escapeHtml(it.origin_branch || 'Matriz')}</td>
+            <td class="py-3 px-4 text-cyan-400 font-semibold">${formatCurrency(it.estimated_value)}</td>
+            <td class="py-3 px-4 font-sans">${getItemStatusBadge(it.status)}</td>
+            <td class="py-3 px-4 text-right font-sans">
+                <div class="flex items-center justify-end gap-1">
+                    <button onclick="editItem(${it.id})" title="Editar Equipamento" class="p-1.5 rounded-lg bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white transition">
+                        <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                    <button onclick="deleteItemPrompt(${it.id}, '${it.patrimony_number}')" title="Excluir Equipamento" class="p-1.5 rounded-lg bg-dark-700 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+
+    lucide.createIcons();
+}
+
+function openItemModal(itemId = null) {
+    document.getElementById('formItem').reset();
+    document.getElementById('editItemId').value = itemId || '';
+    document.getElementById('itemModalTitle').textContent = itemId ? 'Editar Equipamento' : 'Cadastrar Equipamento';
+    openModal('modalItem');
+}
+
+function editItem(itemId) {
+    const it = items.find(i => i.id === itemId);
+    if (!it) return;
+
+    document.getElementById('editItemId').value = it.id;
+    document.getElementById('itemPatrimony').value = it.patrimony_number || '';
+    document.getElementById('itemSerial').value = it.serial_number || '';
+    document.getElementById('itemCode').value = it.item_code || '';
+    document.getElementById('itemDescription').value = it.description || '';
+    document.getElementById('itemType').value = it.item_type || 'Outro';
+    document.getElementById('itemOriginBranch').value = it.origin_branch || '';
+    document.getElementById('itemOriginDept').value = it.origin_department || '';
+    document.getElementById('itemValue').value = it.estimated_value || '';
+    document.getElementById('itemEc').value = it.ec || 'Bom';
+    document.getElementById('itemDefect').value = it.defect_reported || '';
+
+    document.getElementById('itemModalTitle').textContent = 'Editar Equipamento';
+    openModal('modalItem');
+}
+
+async function submitItemForm(e) {
+    e.preventDefault();
+    const editId = document.getElementById('editItemId').value;
+    const payload = {
+        patrimony_number: document.getElementById('itemPatrimony').value.trim(),
+        serial_number: document.getElementById('itemSerial').value.trim(),
+        item_code: document.getElementById('itemCode').value.trim(),
+        description: document.getElementById('itemDescription').value.trim(),
+        item_type: document.getElementById('itemType').value.trim(),
+        origin_branch: document.getElementById('itemOriginBranch').value.trim(),
+        origin_department: document.getElementById('itemOriginDept').value.trim(),
+        estimated_value: parseFloat(document.getElementById('itemValue').value) || 0.0,
+        ec: document.getElementById('itemEc').value,
+        defect_reported: document.getElementById('itemDefect').value.trim()
+    };
+
+    const url = editId ? `/api/rma/items/${editId}` : '/api/rma/items';
+    const method = editId ? 'PUT' : 'POST';
+
+    try {
+        const res = await fetch(url, {
+            method: method,
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            closeModal('modalItem');
+            await loadItems();
+            await loadStats();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Erro ao salvar equipamento.');
+        }
+    } catch (e) {
+        alert('Erro ao conectar ao servidor.');
+    }
+}
+
+async function deleteItemPrompt(id, pat) {
+    if (!confirm(`Deseja excluir o equipamento de patrimônio ${pat}?`)) return;
+
+    try {
+        const res = await fetch(`/api/rma/items/${id}`, { method: 'DELETE', headers: getAuthHeaders(false) });
+        if (res.ok) {
+            await loadItems();
+            await loadStats();
+        }
+    } catch (e) {}
+}
+
+// ==================== TAB 3: TERCEIRIZADAS ====================
+
+async function loadProviders() {
+    try {
+        const res = await fetch('/api/rma/providers', { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            providers = await res.json();
+            renderProvidersGrid();
+        }
+    } catch (e) {}
+}
+
+function renderProvidersGrid() {
+    const grid = document.getElementById('providersGrid');
+    if (providers.length === 0) {
+        grid.innerHTML = '<p class="col-span-full text-center py-8 text-slate-500 text-xs">Nenhuma terceirizada cadastrada.</p>';
+        return;
+    }
+
+    grid.innerHTML = providers.map(p => `
+        <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div>
+                <div class="flex items-start justify-between gap-2">
+                    <h4 class="font-bold text-white text-sm">${escapeHtml(p.name)}</h4>
+                    <span class="px-2 py-0.5 rounded text-[10px] bg-blue-500/10 text-blue-400 font-bold border border-blue-500/20">TERCEIRIZADA</span>
+                </div>
+                ${p.trade_name ? `<p class="text-xs text-amber-400 font-medium mt-0.5">${escapeHtml(p.trade_name)}</p>` : ''}
+                
+                <div class="mt-3 space-y-1 text-xs text-slate-300 font-mono">
+                    ${p.cnpj ? `<div><span class="text-slate-500">CNPJ:</span> ${p.cnpj}</div>` : ''}
+                    ${p.state_registration ? `<div><span class="text-slate-500">IE:</span> ${p.state_registration}</div>` : ''}
+                    ${p.phone ? `<div class="font-sans"><span class="text-slate-500">Tel:</span> ${p.phone}</div>` : ''}
+                    ${p.address ? `<div class="font-sans text-slate-400 text-[11px] mt-1">${escapeHtml(p.address)}${p.city ? ` - ${p.city}` : ''}</div>` : ''}
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-dark-700/80 flex items-center justify-between text-xs">
+                <span class="text-slate-500 text-[11px]">${p.email || ''}</span>
+                <button onclick="deleteProviderPrompt(${p.id}, '${escapeHtml(p.name)}')" class="text-slate-400 hover:text-rose-400 p-1 rounded hover:bg-dark-700 transition" title="Excluir">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    lucide.createIcons();
+}
+
+function openProviderModal() {
+    document.getElementById('formProvider').reset();
+    openModal('modalProvider');
+}
+
+async function submitProviderForm(e) {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('provName').value.trim(),
+        trade_name: document.getElementById('provTrade').value.trim(),
+        cnpj: document.getElementById('provCnpj').value.trim(),
+        state_registration: document.getElementById('provIe').value.trim(),
+        address: document.getElementById('provAddress').value.trim(),
+        city: document.getElementById('provCity').value.trim(),
+        cep: document.getElementById('provCep').value.trim(),
+        phone: document.getElementById('provPhone').value.trim(),
+        email: document.getElementById('provEmail').value.trim()
+    };
+
+    try {
+        const res = await fetch('/api/rma/providers', {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            closeModal('modalProvider');
+            await loadProviders();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Erro ao cadastrar terceirizada.');
+        }
+    } catch (e) {
+        alert('Erro ao conectar ao servidor.');
+    }
+}
+
+async function deleteProviderPrompt(id, name) {
+    if (!confirm(`Deseja remover a terceirizada '${name}'?`)) return;
+    try {
+        await fetch(`/api/rma/providers/${id}`, { method: 'DELETE', headers: getAuthHeaders(false) });
+        await loadProviders();
+    } catch (e) {}
+}
+
+// ==================== TAB 4: TRANSPORTADORAS ====================
+
+async function loadCarriers() {
+    try {
+        const res = await fetch('/api/rma/carriers', { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            carriers = await res.json();
+            renderCarriersGrid();
+        }
+    } catch (e) {}
+}
+
+function renderCarriersGrid() {
+    const grid = document.getElementById('carriersGrid');
+    if (carriers.length === 0) {
+        grid.innerHTML = '<p class="col-span-full text-center py-8 text-slate-500 text-xs">Nenhuma transportadora cadastrada.</p>';
+        return;
+    }
+
+    grid.innerHTML = carriers.map(c => `
+        <div class="glass-panel rounded-2xl p-4 flex flex-col justify-between space-y-3">
+            <div>
+                <div class="flex items-start justify-between gap-2">
+                    <h4 class="font-bold text-white text-sm">${escapeHtml(c.name)}</h4>
+                    <span class="px-2 py-0.5 rounded text-[10px] bg-indigo-500/10 text-indigo-400 font-bold border border-indigo-500/20">FRETE</span>
+                </div>
+                
+                <div class="mt-3 space-y-1 text-xs text-slate-300 font-mono">
+                    ${c.cnpj ? `<div><span class="text-slate-500">CNPJ:</span> ${c.cnpj}</div>` : ''}
+                    ${c.state_registration ? `<div><span class="text-slate-500">IE:</span> ${c.state_registration}</div>` : ''}
+                    ${c.phone ? `<div class="font-sans"><span class="text-slate-500">Contato:</span> ${c.phone}</div>` : ''}
+                </div>
+            </div>
+
+            <div class="pt-3 border-t border-dark-700/80 flex items-center justify-end">
+                <button onclick="deleteCarrierPrompt(${c.id}, '${escapeHtml(c.name)}')" class="text-slate-400 hover:text-rose-400 p-1 rounded hover:bg-dark-700 transition" title="Excluir">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+
+    lucide.createIcons();
+}
+
+function openCarrierModal() {
+    document.getElementById('formCarrier').reset();
+    openModal('modalCarrier');
+}
+
+async function submitCarrierForm(e) {
+    e.preventDefault();
+    const payload = {
+        name: document.getElementById('carrName').value.trim(),
+        cnpj: document.getElementById('carrCnpj').value.trim(),
+        state_registration: document.getElementById('carrIe').value.trim(),
+        phone: document.getElementById('carrPhone').value.trim()
+    };
+
+    try {
+        const res = await fetch('/api/rma/carriers', {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify(payload)
+        });
+        if (res.ok) {
+            closeModal('modalCarrier');
+            await loadCarriers();
+        } else {
+            const err = await res.json();
+            alert(err.detail || 'Erro ao cadastrar transportadora.');
+        }
+    } catch (e) {
+        alert('Erro ao conectar ao servidor.');
+    }
+}
+
+async function deleteCarrierPrompt(id, name) {
+    if (!confirm(`Deseja remover a transportadora '${name}'?`)) return;
+    try {
+        await fetch(`/api/rma/carriers/${id}`, { method: 'DELETE', headers: getAuthHeaders(false) });
+        await loadCarriers();
+    } catch (e) {}
+}
+
+// ==================== MODAL UTILS ====================
+
+function openModal(id) {
+    document.getElementById(id).classList.remove('hidden');
+    lucide.createIcons();
+}
+
+function closeModal(id) {
+    document.getElementById(id).classList.add('hidden');
+}

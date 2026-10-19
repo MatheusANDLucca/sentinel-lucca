@@ -27,13 +27,13 @@ class UserCreate(BaseModel):
     password: str = Field(..., min_length=4)
     full_name: str = Field(..., min_length=2, max_length=100)
     role: str = Field(default="operador", pattern="^(admin|operador|visualizador)$")
-    allowed_modules: str = Field(default="all", pattern="^(all|cftv|printers)$", description="Módulos permitidos: all (Todos), cftv (Apenas Gravadores), printers (Apenas Impressoras)")
+    allowed_modules: str = Field(default="all", pattern="^(all|cftv|printers|rma|[a-zA-Z0-9_, -]+)$", description="Módulos permitidos: all (Todos), cftv, printers, rma")
     is_active: bool = True
 
 class UserUpdate(BaseModel):
     full_name: Optional[str] = Field(None, min_length=2, max_length=100)
     role: Optional[str] = Field(None, pattern="^(admin|operador|visualizador)$")
-    allowed_modules: Optional[str] = Field(None, pattern="^(all|cftv|printers)$")
+    allowed_modules: Optional[str] = Field(None, pattern="^(all|cftv|printers|rma|[a-zA-Z0-9_, -]+)$")
     is_active: Optional[bool] = None
     new_password: Optional[str] = Field(None, min_length=4)
 
@@ -218,3 +218,198 @@ class PortalSummaryOut(BaseModel):
     user: UserOut
     cftv: Dict[str, Any]
     printers: Dict[str, Any]
+    rma: Optional[Dict[str, Any]] = None
+
+# ==================== RMA & CONTROLE PATRIMONIAL ====================
+
+class RmaProviderBase(BaseModel):
+    name: str = Field(..., min_length=2, max_length=150)
+    trade_name: Optional[str] = Field(default="", max_length=150)
+    cnpj: Optional[str] = Field(default="", max_length=30)
+    state_registration: Optional[str] = Field(default="", max_length=30)
+    contact_name: Optional[str] = Field(default="", max_length=100)
+    phone: Optional[str] = Field(default="", max_length=40)
+    email: Optional[str] = Field(default="", max_length=100)
+    address: Optional[str] = Field(default="", max_length=200)
+    district: Optional[str] = Field(default="", max_length=100)
+    city: Optional[str] = Field(default="", max_length=100)
+    state: Optional[str] = Field(default="", max_length=10)
+    cep: Optional[str] = Field(default="", max_length=20)
+    notes: Optional[str] = Field(default="", max_length=500)
+    is_active: bool = True
+
+class RmaProviderCreate(RmaProviderBase):
+    pass
+
+class RmaProviderUpdate(BaseModel):
+    name: Optional[str] = None
+    trade_name: Optional[str] = None
+    cnpj: Optional[str] = None
+    state_registration: Optional[str] = None
+    contact_name: Optional[str] = None
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    address: Optional[str] = None
+    district: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    cep: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class RmaProviderOut(RmaProviderBase):
+    id: int
+    created_at: str
+    updated_at: str
+
+class RmaCarrierBase(BaseModel):
+    name: str = Field(..., min_length=2, max_length=150)
+    trade_name: Optional[str] = Field(default="", max_length=150)
+    cnpj: Optional[str] = Field(default="", max_length=30)
+    state_registration: Optional[str] = Field(default="", max_length=30)
+    phone: Optional[str] = Field(default="", max_length=40)
+    contact_name: Optional[str] = Field(default="", max_length=100)
+    notes: Optional[str] = Field(default="", max_length=500)
+    is_active: bool = True
+
+class RmaCarrierCreate(RmaCarrierBase):
+    pass
+
+class RmaCarrierUpdate(BaseModel):
+    name: Optional[str] = None
+    trade_name: Optional[str] = None
+    cnpj: Optional[str] = None
+    state_registration: Optional[str] = None
+    phone: Optional[str] = None
+    contact_name: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class RmaCarrierOut(RmaCarrierBase):
+    id: int
+    created_at: str
+    updated_at: str
+
+class RmaItemBase(BaseModel):
+    patrimony_number: str = Field(..., min_length=1, max_length=50)
+    serial_number: Optional[str] = Field(default="", max_length=80)
+    item_code: Optional[str] = Field(default="", max_length=50)
+    description: str = Field(..., min_length=2, max_length=200)
+    brand: Optional[str] = Field(default="", max_length=80)
+    model: Optional[str] = Field(default="", max_length=80)
+    item_type: Optional[str] = Field(default="Outro", max_length=80)
+    origin_branch: str = Field(default="Matriz", max_length=100)
+    origin_department: Optional[str] = Field(default="", max_length=100)
+    ec: Optional[str] = Field(default="Bom", max_length=50)
+    estimated_value: Optional[float] = Field(default=0.0, ge=0)
+    defect_reported: Optional[str] = Field(default="", max_length=500)
+    status: Optional[str] = Field(default="na_ti")
+    notes: Optional[str] = Field(default="", max_length=500)
+    is_active: bool = True
+
+class RmaItemCreate(RmaItemBase):
+    pass
+
+class RmaItemUpdate(BaseModel):
+    patrimony_number: Optional[str] = None
+    serial_number: Optional[str] = None
+    item_code: Optional[str] = None
+    description: Optional[str] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    item_type: Optional[str] = None
+    origin_branch: Optional[str] = None
+    origin_department: Optional[str] = None
+    ec: Optional[str] = None
+    estimated_value: Optional[float] = None
+    defect_reported: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class RmaItemOut(RmaItemBase):
+    id: int
+    current_request_id: Optional[int] = None
+    created_at: str
+    updated_at: str
+
+class RmaRequestCreate(BaseModel):
+    sender_name: str = Field(default="CLENIO MARCOS", max_length=100)
+    sender_department: str = Field(default="CPD", max_length=80)
+    provider_id: int
+    recipient_department: str = Field(default="MANUTENÇÃO", max_length=80)
+    subject_type: str = Field(default="conserto", pattern="^(conserto|transferencia|emprestimo|baixa)$")
+    carrier_id: Optional[int] = None
+    justification_notes: Optional[str] = Field(default="", max_length=1000)
+    item_ids: List[int] = Field(..., min_length=1)
+
+class RmaRequestUpdate(BaseModel):
+    sender_name: Optional[str] = None
+    sender_department: Optional[str] = None
+    provider_id: Optional[int] = None
+    recipient_department: Optional[str] = None
+    subject_type: Optional[str] = None
+    carrier_id: Optional[int] = None
+    justification_notes: Optional[str] = None
+    status: Optional[str] = None
+    invoice_out: Optional[str] = None
+    invoice_out_date: Optional[str] = None
+    invoice_in: Optional[str] = None
+    invoice_in_date: Optional[str] = None
+    repair_cost: Optional[float] = None
+
+class RmaRequestItemOut(BaseModel):
+    id: int
+    request_id: int
+    item_id: int
+    patrimony_number: str
+    description: str
+    serial_number: Optional[str] = ""
+    item_code: Optional[str] = ""
+    origin_branch: Optional[str] = ""
+    ec: Optional[str] = ""
+    value: float = 0.0
+    defect_notes: Optional[str] = ""
+    created_at: str
+
+class RmaRequestOut(BaseModel):
+    id: int
+    request_number: str
+    sender_name: str
+    sender_department: str
+    provider_id: int
+    provider_name: Optional[str] = None
+    provider_trade_name: Optional[str] = None
+    provider_cnpj: Optional[str] = None
+    provider_ie: Optional[str] = None
+    provider_address: Optional[str] = None
+    provider_phone: Optional[str] = None
+    recipient_department: str
+    subject_type: str
+    carrier_id: Optional[int] = None
+    carrier_name: Optional[str] = None
+    carrier_cnpj: Optional[str] = None
+    carrier_ie: Optional[str] = None
+    justification_notes: Optional[str] = ""
+    status: str
+    invoice_out: Optional[str] = ""
+    invoice_out_date: Optional[str] = None
+    invoice_in: Optional[str] = ""
+    invoice_in_date: Optional[str] = None
+    repair_cost: float = 0.0
+    items: List[RmaRequestItemOut] = []
+    total_value: float = 0.0
+    created_by: Optional[int] = None
+    created_at: str
+    updated_at: str
+
+class RmaDashboardMetrics(BaseModel):
+    total_items: int
+    items_na_ti: int
+    items_em_conserto: int
+    items_retornados: int
+    total_requests: int
+    requests_aguardando_nf: int
+    requests_em_conserto: int
+    requests_finalizados: int
+

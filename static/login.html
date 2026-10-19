@@ -171,6 +171,7 @@
                 localStorage.setItem('sentinel_token', data.token);
                 localStorage.setItem('cftv_token', data.token);
                 localStorage.setItem('print_token', data.token);
+                localStorage.setItem('rma_token', data.token);
                 localStorage.setItem('sentinel_user', JSON.stringify(data.user));
 
                 successAlert.classList.remove('hidden');
@@ -190,6 +191,9 @@
                     } else if (allowed === 'printers') {
                         // Apenas Print Sentinel
                         window.location.href = '/printers/';
+                    } else if (allowed === 'rma') {
+                        // Apenas Controle Patrimonial (RMA)
+                        window.location.href = '/rma';
                     } else {
                         window.location.href = '/portal';
                     }
