@@ -249,16 +249,26 @@ function renderRequestsTable() {
                             <span class="hidden xl:inline font-semibold">Imprimir</span>
                         </button>
 
+                        <!-- Editar Solicitação (Apenas se NÃO tiver NF de saída) -->
+                        ${!r.invoice_out ? `
+                        <button onclick="openEditRequestModal(${r.id})" title="Editar Solicitação (Disponível antes da NF de Saída)" class="p-1.5 rounded-lg bg-dark-700 hover:bg-blue-600 text-blue-400 hover:text-white transition flex items-center gap-1 text-xs">
+                            <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+                            <span class="hidden xl:inline font-semibold">Editar</span>
+                        </button>
+                        ` : ''}
+
                         <!-- Informar Nota Fiscal -->
                         <button onclick="openInvoiceModal(${r.id})" title="Informar Nota Fiscal e Status" class="p-1.5 rounded-lg bg-dark-700 hover:bg-amber-600 text-amber-400 hover:text-white transition flex items-center gap-1 text-xs">
                             <i data-lucide="file-check" class="w-3.5 h-3.5"></i>
                             <span class="hidden xl:inline font-semibold">NF</span>
                         </button>
 
-                        <!-- Excluir Solicitação -->
+                        <!-- Excluir Solicitação (Apenas se não tiver NF de Saída) -->
+                        ${!r.invoice_out ? `
                         <button onclick="deleteRequest(${r.id}, '${r.request_number}')" title="Excluir Solicitação" class="p-1.5 rounded-lg bg-dark-700 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 transition">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
                         </button>
+                        ` : ''}
                     </div>
                 </td>
             </tr>
@@ -285,6 +295,7 @@ async function deleteRequest(id, reqNumber) {
         if (res.ok) {
             await loadRequests();
             await loadStats();
+            await loadItems();
         } else {
             const err = await res.json();
             alert(err.detail || 'Erro ao excluir solicitação.');
@@ -300,6 +311,10 @@ async function openNewRequestModal() {
     await loadProviders();
     await loadCarriers();
 
+    document.getElementById('editRequestId').value = '';
+    document.getElementById('modalRequestTitle').textContent = 'Criar Solicitação de Controle Patrimonial';
+    document.getElementById('btnSubmitRequestText').textContent = 'Gerar Solicitação';
+
     // Carregar dropdowns de Terceirizada e Transportadora
     const provSelect = document.getElementById('reqProviderId');
     provSelect.innerHTML = providers.map(p => `
@@ -310,6 +325,13 @@ async function openNewRequestModal() {
     carrSelect.innerHTML = '<option value="">Sem Transportadora (Entrega Direta)</option>' + carriers.map(c => `
         <option value="${c.id}">${escapeHtml(c.name)}</option>
     `).join('');
+
+    // Limpar campos
+    document.getElementById('reqSenderName').value = 'CLENIO MARCOS';
+    document.getElementById('reqSenderDept').value = 'CPD';
+    document.getElementById('reqRecipientDept').value = 'MANUTENÇÃO';
+    document.getElementById('reqSubjectType').value = 'conserto';
+    document.getElementById('reqJustification').value = '';
 
     // Carregar itens disponíveis na TI
     try {
@@ -348,6 +370,95 @@ async function openNewRequestModal() {
     openModal('modalNewRequest');
 }
 
+// ==================== MODAL: EDITAR SOLICITAÇÃO ====================
+
+async function openEditRequestModal(id) {
+    const req = requests.find(r => r.id === id);
+    if (!req) return;
+
+    // Regra fundamental de negócio: Não permitir editar se já houver NF de saída
+    if (req.invoice_out) {
+        alert('Esta solicitação já possui Nota Fiscal de Saída emitida e não pode mais ser editada.');
+        return;
+    }
+
+    await loadProviders();
+    await loadCarriers();
+
+    document.getElementById('editRequestId').value = req.id;
+    document.getElementById('modalRequestTitle').textContent = `Editar Solicitação #${req.request_number}`;
+    document.getElementById('btnSubmitRequestText').textContent = 'Salvar Alterações';
+
+    // Carregar dropdowns de Terceirizada e Transportadora
+    const provSelect = document.getElementById('reqProviderId');
+    provSelect.innerHTML = providers.map(p => `
+        <option value="${p.id}" ${p.id === req.provider_id ? 'selected' : ''}>${escapeHtml(p.name)} ${p.trade_name ? `(${escapeHtml(p.trade_name)})` : ''}</option>
+    `).join('');
+
+    const carrSelect = document.getElementById('reqCarrierId');
+    carrSelect.innerHTML = '<option value="">Sem Transportadora (Entrega Direta)</option>' + carriers.map(c => `
+        <option value="${c.id}" ${c.id === req.carrier_id ? 'selected' : ''}>${escapeHtml(c.name)}</option>
+    `).join('');
+
+    // Preencher campos com dados atuais
+    document.getElementById('reqSenderName').value = req.sender_name || 'CLENIO MARCOS';
+    document.getElementById('reqSenderDept').value = req.sender_department || 'CPD';
+    document.getElementById('reqRecipientDept').value = req.recipient_department || 'MANUTENÇÃO';
+    document.getElementById('reqSubjectType').value = req.subject_type || 'conserto';
+    document.getElementById('reqJustification').value = req.justification_notes || '';
+
+    // Buscar detalhes da solicitação para obter os IDs dos itens já vinculados
+    let reqItems = req.items || [];
+    try {
+        const detRes = await fetch(`/api/rma/requests/${id}`, { headers: getAuthHeaders(false) });
+        if (detRes.ok) {
+            const det = await detRes.json();
+            reqItems = det.items || [];
+        }
+    } catch(e) {}
+
+    const reqItemIds = new Set(reqItems.map(it => it.item_id));
+
+    // Carregar itens: itens disponíveis na TI + itens já vinculados a esta solicitação
+    try {
+        const res = await fetch('/api/rma/items', { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            const allItems = await res.json();
+            // Filtrar apenas os que estão 'na_ti' OU que pertencem a esta requisição
+            const eligibleItems = allItems.filter(it => it.status === 'na_ti' || reqItemIds.has(it.id));
+            const container = document.getElementById('availableItemsContainer');
+
+            if (eligibleItems.length === 0) {
+                container.innerHTML = `<p class="text-slate-400 text-center py-4">Nenhum equipamento selecionável.</p>`;
+            } else {
+                container.innerHTML = eligibleItems.map(it => {
+                    const isChecked = reqItemIds.has(it.id);
+                    return `
+                        <label class="flex items-start gap-3 p-2 rounded-lg hover:bg-dark-800 transition cursor-pointer border ${isChecked ? 'border-amber-500/40 bg-amber-500/10' : 'border-transparent hover:border-dark-700'}">
+                            <input type="checkbox" name="reqItemCheck" value="${it.id}" ${isChecked ? 'checked' : ''} onchange="updateSelectedItemsCount()" class="mt-1 rounded bg-dark-900 border-dark-600 text-amber-500 focus:ring-0">
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between font-mono">
+                                    <span class="font-bold text-white text-xs">Patr: ${it.patrimony_number}</span>
+                                    <span class="text-cyan-400 text-xs font-semibold">${formatCurrency(it.estimated_value)}</span>
+                                </div>
+                                <div class="text-[11px] font-semibold text-slate-300 font-sans">${escapeHtml(it.description)}</div>
+                                <div class="text-[10px] text-slate-400 font-sans flex items-center gap-2">
+                                    <span>NS: ${it.serial_number || '-'}</span> &bull; 
+                                    <span>${it.origin_branch}</span>
+                                </div>
+                                ${isChecked ? '<span class="text-[9px] text-amber-400 font-semibold font-sans mt-0.5 inline-block">✓ Já nesta solicitação</span>' : ''}
+                            </div>
+                        </label>
+                    `;
+                }).join('');
+            }
+        }
+    } catch(e) {}
+
+    updateSelectedItemsCount();
+    openModal('modalNewRequest');
+}
+
 function updateSelectedItemsCount() {
     const checks = document.querySelectorAll('input[name="reqItemCheck"]:checked');
     document.getElementById('selectedItemsCount').textContent = `${checks.length} selecionado(s)`;
@@ -357,9 +468,12 @@ async function submitNewRequest(e) {
     e.preventDefault();
     const checked = Array.from(document.querySelectorAll('input[name="reqItemCheck"]:checked')).map(c => parseInt(c.value));
     if (checked.length === 0) {
-        alert('Por favor, selecione ao menos um equipamento para incluir na solicitação.');
+        alert('Por favor, selecione ao menos um equipamento para a solicitação.');
         return;
     }
+
+    const editId = document.getElementById('editRequestId').value;
+    const isEditing = !!editId;
 
     const payload = {
         sender_name: document.getElementById('reqSenderName').value.trim(),
@@ -373,25 +487,32 @@ async function submitNewRequest(e) {
     };
 
     try {
-        const res = await fetch('/api/rma/requests', {
-            method: 'POST',
+        const url = isEditing ? `/api/rma/requests/${editId}` : '/api/rma/requests';
+        const method = isEditing ? 'PUT' : 'POST';
+
+        const res = await fetch(url, {
+            method: method,
             headers: getAuthHeaders(true),
             body: JSON.stringify(payload)
         });
 
         if (res.ok) {
-            const created = await res.json();
+            const data = await res.json();
             closeModal('modalNewRequest');
             await loadRequests();
             await loadStats();
+            await loadItems();
 
-            // Abrir direto a tela de impressão do documento oficial!
-            if (confirm(`Solicitação ${created.request_number} criada com sucesso!\nDeseja visualizar e imprimir o documento A4 agora?`)) {
-                printRequest(created.id);
+            if (isEditing) {
+                alert(`Solicitação #${data.request_number} atualizada com sucesso!`);
+            } else {
+                if (confirm(`Solicitação ${data.request_number} criada com sucesso!\nDeseja visualizar e imprimir o documento A4 agora?`)) {
+                    printRequest(data.id);
+                }
             }
         } else {
             const err = await res.json();
-            alert(err.detail || 'Erro ao criar solicitação.');
+            alert(err.detail || 'Erro ao processar solicitação.');
         }
     } catch (e) {
         alert('Erro ao conectar com o servidor.');

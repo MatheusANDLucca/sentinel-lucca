@@ -735,7 +735,26 @@ async def update_request(
         if not existing:
             raise HTTPException(status_code=404, detail="Solicitação não encontrada.")
 
+        # Se a solicitação já tiver Nota Fiscal de Saída emitida, bloquear edição de campos cadastrais e itens
+        structural_fields = [
+            payload.sender_name,
+            payload.sender_department,
+            payload.provider_id,
+            payload.recipient_department,
+            payload.subject_type,
+            payload.carrier_id,
+            payload.justification_notes,
+            payload.item_ids
+        ]
+        if existing["invoice_out"] and any(f is not None for f in structural_fields):
+            raise HTTPException(
+                status_code=400,
+                detail="Esta solicitação já possui Nota Fiscal de Saída emitida e não pode ser editada."
+            )
+
         update_dict = {k: v for k, v in payload.model_dump().items() if v is not None}
+        new_item_ids = update_dict.pop("item_ids", None)
+
         if update_dict:
             update_dict["updated_at"] = now_str
             set_clause = ", ".join([f"{k} = ?" for k in update_dict.keys()])
@@ -763,7 +782,55 @@ async def update_request(
                     (item_new_status, now_str, request_id)
                 )
 
-            await db.commit()
+        # Atualizar lista de equipamentos vinculados caso fornecido
+        if new_item_ids is not None:
+            if len(new_item_ids) == 0:
+                raise HTTPException(status_code=400, detail="A solicitação deve conter ao menos um equipamento.")
+
+            c_curr = await db.execute("SELECT item_id FROM rma_request_items WHERE request_id = ?", (request_id,))
+            current_ids = set([r[0] for r in await c_curr.fetchall()])
+            target_ids = set(new_item_ids)
+
+            # Itens desmarcados (remover da solicitação e devolver para 'na_ti')
+            to_remove = current_ids - target_ids
+            for rem_id in to_remove:
+                await db.execute("DELETE FROM rma_request_items WHERE request_id = ? AND item_id = ?", (request_id, rem_id))
+                await db.execute("UPDATE rma_items SET status = 'na_ti', current_request_id = NULL, updated_at = ? WHERE id = ?", (now_str, rem_id))
+
+            # Novos itens marcados (inserir na solicitação e marcar como 'aguardando_nf')
+            to_add = target_ids - current_ids
+            for add_id in to_add:
+                c_it = await db.execute("SELECT * FROM rma_items WHERE id = ?", (add_id,))
+                row_raw = await c_it.fetchone()
+                if row_raw:
+                    it_row = dict(row_raw)
+                    await db.execute(
+                        """
+                        INSERT INTO rma_request_items (
+                            request_id, item_id, patrimony_number, description, serial_number,
+                            item_code, origin_branch, ec, value, defect_notes, created_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            request_id,
+                            it_row["id"],
+                            it_row["patrimony_number"],
+                            it_row["description"],
+                            it_row.get("serial_number", ""),
+                            it_row.get("item_code", ""),
+                            it_row.get("origin_branch", ""),
+                            it_row.get("ec", "Bom"),
+                            it_row.get("estimated_value", 0.0),
+                            it_row.get("defect_reported", ""),
+                            now_str
+                        )
+                    )
+                    await db.execute(
+                        "UPDATE rma_items SET status = 'aguardando_nf', current_request_id = ?, updated_at = ? WHERE id = ?",
+                        (request_id, now_str, add_id)
+                    )
+
+        await db.commit()
 
         cursor = await db.execute(
             """

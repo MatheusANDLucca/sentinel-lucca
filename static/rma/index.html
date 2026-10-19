@@ -360,10 +360,10 @@
         <div class="bg-dark-800 border border-dark-700 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl p-6 space-y-5">
             <div class="flex items-center justify-between border-b border-dark-700 pb-3">
                 <div class="flex items-center gap-2.5">
-                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                    <div id="modalRequestIcon" class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
                         <i data-lucide="file-plus" class="w-4 h-4"></i>
                     </div>
-                    <h3 class="text-sm font-bold text-white">Criar Solicitação de Controle Patrimonial</h3>
+                    <h3 class="text-sm font-bold text-white" id="modalRequestTitle">Criar Solicitação de Controle Patrimonial</h3>
                 </div>
                 <button onclick="closeModal('modalNewRequest')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
                     <i data-lucide="x" class="w-5 h-5"></i>
@@ -371,6 +371,7 @@
             </div>
 
             <form id="formNewRequest" onsubmit="submitNewRequest(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="editRequestId">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block font-medium text-slate-300 mb-1">DE: Solicitante (Seu Nome)</label>
@@ -416,7 +417,7 @@
                 <!-- Seleção dos Itens -->
                 <div>
                     <label class="block font-medium text-slate-300 mb-1.5 flex items-center justify-between">
-                        <span>Selecione os Equipamentos para Envio (Disponíveis na TI):</span>
+                        <span>Selecione os Equipamentos para Envio:</span>
                         <span id="selectedItemsCount" class="text-amber-400 font-bold">0 selecionados</span>
                     </label>
                     <div id="availableItemsContainer" class="max-h-48 overflow-y-auto border border-dark-700 bg-dark-900/60 rounded-xl p-3 space-y-2">
@@ -431,9 +432,9 @@
 
                 <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
                     <button type="button" onclick="closeModal('modalNewRequest')" class="px-4 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-300">Cancelar</button>
-                    <button type="submit" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-amber-600/30">
+                    <button type="submit" id="btnSubmitRequest" class="px-5 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-semibold flex items-center gap-1.5 shadow-lg shadow-amber-600/30">
                         <i data-lucide="check" class="w-4 h-4"></i>
-                        <span>Gerar Solicitação</span>
+                        <span id="btnSubmitRequestText">Gerar Solicitação</span>
                     </button>
                 </div>
             </form>

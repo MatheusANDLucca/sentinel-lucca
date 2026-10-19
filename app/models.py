@@ -357,6 +357,7 @@ class RmaRequestUpdate(BaseModel):
     invoice_in: Optional[str] = None
     invoice_in_date: Optional[str] = None
     repair_cost: Optional[float] = None
+    item_ids: Optional[List[int]] = None
 
 class RmaRequestItemOut(BaseModel):
     id: int
