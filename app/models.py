@@ -441,3 +441,17 @@ class RmaDashboardMetrics(BaseModel):
     requests_em_conserto: int
     requests_finalizados: int
 
+class RmaSendEmailPayload(BaseModel):
+    to_emails: Optional[str] = None
+    cc_emails: Optional[str] = None
+    custom_message: Optional[str] = None
+
+class RmaEmailConfigOut(BaseModel):
+    default_to: str
+    default_cc: str
+    smtp_server: str
+    smtp_port: int
+    smtp_user: str
+    is_smtp_configured: bool
+
+

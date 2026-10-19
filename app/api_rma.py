@@ -4,16 +4,25 @@ from datetime import datetime
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException, Query, Depends, Request, Response
 
+import logging
 from app.database import get_db_connection
 from app.models import (
     RmaProviderCreate, RmaProviderUpdate, RmaProviderOut,
     RmaCarrierCreate, RmaCarrierUpdate, RmaCarrierOut,
     RmaItemCreate, RmaItemUpdate, RmaItemOut, RmaItemHistoryOut, RmaItemHistoryEntry,
     RmaRequestCreate, RmaRequestUpdate, RmaRequestOut, RmaRequestItemOut,
-    RmaDashboardMetrics
+    RmaDashboardMetrics, RmaSendEmailPayload, RmaEmailConfigOut
 )
 from app.auth import get_current_user, require_roles, require_module_access, record_audit_log
 from app.websocket_manager import ws_manager
+from app.config import (
+    SMTP_SERVER, SMTP_PORT, SMTP_USER, SMTP_PASSWORD,
+    RMA_DEFAULT_EMAIL_TO, RMA_DEFAULT_EMAIL_CC
+)
+from app.pdf_generator import generate_rma_pdf
+from app.email_service import send_rma_request_email
+
+logger = logging.getLogger("sentinel.rma")
 
 router = APIRouter(
     prefix="/api/rma",
@@ -1087,3 +1096,69 @@ async def get_rma_stats(current_user: dict = Depends(get_current_user)):
         requests_em_conserto=rq_row["em_conserto"] or 0,
         requests_finalizados=rq_row["finalizados"] or 0
     )
+
+# ==================== ENVIO DE E-MAIL E PDF ====================
+
+@router.get("/email-config", response_model=RmaEmailConfigOut)
+async def get_email_config(current_user: dict = Depends(get_current_user)):
+    """Retorna as configurações e destinatários padrão do envio de e-mails."""
+    return RmaEmailConfigOut(
+        default_to=RMA_DEFAULT_EMAIL_TO,
+        default_cc=RMA_DEFAULT_EMAIL_CC,
+        smtp_server=SMTP_SERVER,
+        smtp_port=SMTP_PORT,
+        smtp_user=SMTP_USER,
+        is_smtp_configured=bool(SMTP_USER and SMTP_PASSWORD)
+    )
+
+@router.get("/requests/{request_id}/pdf")
+async def download_request_pdf(request_id: int):
+    """Gera e retorna o PDF oficial da solicitação para download ou visualização."""
+    req_dict = await get_request_print_data(request_id)
+    pdf_bytes = generate_rma_pdf(req_dict)
+    clean_code = str(req_dict.get("request_code", f"{request_id}")).replace("/", "_").replace(" ", "_")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="solicitacao_{clean_code}.pdf"'
+        }
+    )
+
+@router.post("/requests/{request_id}/send-email")
+async def send_request_email(
+    request_id: int,
+    payload: RmaSendEmailPayload,
+    request: Request,
+    current_user: dict = Depends(require_roles("admin", "operador"))
+):
+    """Gera o PDF oficial da solicitação e envia por e-mail para o setor de notas."""
+    req_dict = await get_request_print_data(request_id)
+    
+    try:
+        result = await send_rma_request_email(
+            request_data=req_dict,
+            to_emails=payload.to_emails,
+            cc_emails=payload.cc_emails,
+            custom_message=payload.custom_message
+        )
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Erro ao disparar e-mail da solicitação {request_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Erro ao enviar e-mail: {str(e)}")
+
+    await record_audit_log(
+        user_id=current_user["id"],
+        username=current_user["username"],
+        action="SEND_EMAIL",
+        entity_type="rma_requests",
+        entity_id=request_id,
+        details=f"Solicitação enviada por e-mail para {', '.join(result['to'])} (CC: {', '.join(result['cc'])})"
+    )
+
+    return {
+        "success": True,
+        "message": f"E-mail com PDF da solicitação enviado com sucesso para {', '.join(result['to'])}!",
+        "details": result
+    }

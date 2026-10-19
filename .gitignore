@@ -29,3 +29,10 @@ Thumbs.db
 # IDE & Editor configs
 .vscode/
 .idea/
+
+# Environment variables & secrets
+.env
+
+# PDF files
+*.pdf
+

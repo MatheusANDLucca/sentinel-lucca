@@ -260,6 +260,12 @@ function renderRequestsTable() {
                             <span class="hidden 2xl:inline">Imprimir</span>
                         </button>
 
+                        <!-- Enviar por E-mail para Faturamento com PDF Anexo -->
+                        <button onclick="openSendEmailModal(${r.id})" title="Enviar Solicitação por E-mail (com PDF anexo)" class="p-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600 border border-emerald-500/30 text-emerald-400 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
+                            <i data-lucide="mail" class="w-3.5 h-3.5"></i>
+                            <span class="hidden 2xl:inline">E-mail</span>
+                        </button>
+
                         <!-- Editar Solicitação (Apenas se NÃO tiver NF de saída) -->
                         ${!hasNf ? `
                         <button onclick="openEditRequestModal(${r.id})" title="Editar Solicitação" class="p-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600 border border-blue-500/30 text-blue-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
@@ -1159,4 +1165,95 @@ function openModal(id) {
 
 function closeModal(id) {
     document.getElementById(id).classList.add('hidden');
+}
+
+// ==================== ENVIO DE E-MAIL COM PDF ====================
+
+let rmaEmailConfig = null;
+
+async function loadRmaEmailConfig() {
+    if (rmaEmailConfig) return rmaEmailConfig;
+    try {
+        const res = await fetch('/api/rma/email-config', { headers: getAuthHeaders(false) });
+        if (res.ok) {
+            rmaEmailConfig = await res.json();
+        }
+    } catch (e) {
+        console.error('Erro ao obter configurações de e-mail:', e);
+    }
+    return rmaEmailConfig;
+}
+
+async function openSendEmailModal(reqId) {
+    const r = requests.find(x => x.id === reqId);
+    if (!r) return;
+
+    await loadRmaEmailConfig();
+
+    document.getElementById('emailReqId').value = reqId;
+    document.getElementById('emailModalReqCode').textContent = `Controle: ${r.request_number} | Destino: ${r.provider_name || '-'}`;
+    
+    // Preenche com os e-mails padrão definidos
+    document.getElementById('emailToInput').value = rmaEmailConfig?.default_to || 'matheuslucca@capul.com.br';
+    document.getElementById('emailCcInput').value = rmaEmailConfig?.default_cc || 'lucas.ti@capul.com.br';
+    document.getElementById('emailCustomMessage').value = '';
+
+    const cleanCode = String(r.request_number).replace(/[\/\s]/g, '_');
+    document.getElementById('emailAttachmentName').textContent = `solicitacao_${cleanCode}.pdf`;
+    document.getElementById('btnPreviewPdf').href = `/api/rma/requests/${reqId}/pdf`;
+
+    const noticeEl = document.getElementById('emailSmtpNotice');
+    if (rmaEmailConfig && !rmaEmailConfig.is_smtp_configured) {
+        noticeEl.classList.remove('hidden');
+    } else {
+        noticeEl.classList.add('hidden');
+    }
+
+    openModal('modalSendEmail');
+}
+
+async function submitSendEmailForm(e) {
+    e.preventDefault();
+    const reqId = document.getElementById('emailReqId').value;
+    const toEmails = document.getElementById('emailToInput').value.trim();
+    const ccEmails = document.getElementById('emailCcInput').value.trim();
+    const customMessage = document.getElementById('emailCustomMessage').value.trim();
+
+    if (!toEmails) {
+        alert('Por favor, informe ao menos um e-mail de destino.');
+        return;
+    }
+
+    const btn = document.getElementById('btnSubmitSendEmail');
+    const btnText = document.getElementById('btnSubmitSendEmailText');
+    const originalText = btnText.textContent;
+
+    btn.disabled = true;
+    btnText.textContent = 'Enviando e-mail...';
+
+    try {
+        const res = await fetch(`/api/rma/requests/${reqId}/send-email`, {
+            method: 'POST',
+            headers: getAuthHeaders(true),
+            body: JSON.stringify({
+                to_emails: toEmails,
+                cc_emails: ccEmails,
+                custom_message: customMessage
+            })
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            closeModal('modalSendEmail');
+            alert(`Sucesso! E-mail com PDF da solicitação enviado para: ${toEmails}${ccEmails ? ` (CC: ${ccEmails})` : ''}`);
+        } else {
+            alert(data.detail || 'Erro ao enviar e-mail.');
+        }
+    } catch (err) {
+        console.error('Erro ao enviar e-mail:', err);
+        alert('Erro ao conectar com o servidor para envio do e-mail.');
+    } finally {
+        btn.disabled = false;
+        btnText.textContent = originalText;
+    }
 }
