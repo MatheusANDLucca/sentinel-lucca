@@ -1,0 +1,160 @@
+﻿===================================================================================
+     GUIA DEFINITIVO: COMO MIGRAR OU INSTALAR O SENTINEL LUCCA EM OUTRO SERVIDOR
+                 (CFTV Sentinel + Print Sentinel - Plataforma Unificada)
+===================================================================================
+
+Este documento contem o passo a passo completo para voce levar este sistema para
+qualquer outro computador ou servidor (Windows ou Linux) mantendo 100% dos seus
+dados, usuarios, gravadores de CFTV, impressoras e configuracoes.
+
+-----------------------------------------------------------------------------------
+1. O QUE VOCE PRECISA COPIAR DESTA MAQUINA
+-----------------------------------------------------------------------------------
+Basta copiar a pasta inteira do projeto:
+  "Projeto Sentinel Lucca"
+
+DICA IMPORTANTE:
+- Voce NAO precisa copiar a pasta ".venv". Pode apaga-la ou nao copiar.
+  O script "run.bat" vai recriar ela limpa e automaticamente no novo computador.
+- O arquivo mais importante de todos e:
+  data\sentinel.db
+  Esse arquivo contem TODO o seu banco de dados:
+  - Usuarios e senhas
+  - Todos os Gravadores de CFTV cadastrados
+  - Todas as Impressoras em rede cadastradas
+  - Configuracoes do Telegram e alertas sonoros
+  - Historico de auditoria
+
+-----------------------------------------------------------------------------------
+2. INSTALANDO EM UM SERVIDOR WINDOWS (Windows 10, 11 ou Windows Server)
+-----------------------------------------------------------------------------------
+
+PASSO 1: INSTALAR O PYTHON NO NOVO SERVIDOR
+1. Acesse no navegador: https://www.python.org/downloads/
+2. Baixe o instalador do Python (versao 3.10 ou mais recente).
+3. Ao executar o instalador, ATENCAO:
+   -> Marque a caixinha: [X] "Add python.exe to PATH" (no rodape da janela).
+   -> Depois clique em "Install Now".
+
+PASSO 2: COLOCAR A PASTA NO LOCAL DEFINITIVO
+Copie a pasta para o servidor, por exemplo:
+  C:\Sentinel Lucca
+  (ou C:\Projetos\Sentinel Lucca)
+
+PASSO 3: LIBERAR A PORTA 8000 NO FIREWALL DO WINDOWS
+Para que outros computadores da empresa consigam acessar o sistema pelo navegador:
+Opcao A (Facil):
+  Clique com o botao direito no arquivo "liberar_firewall_porta_8000.bat"
+  e escolha "Executar como Administrador".
+
+Opcao B (Manual via PowerShell como Administrador):
+  New-NetFirewallRule -DisplayName "Sentinel Lucca (Porta 8000)" -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+
+PASSO 4: EXECUTAR PELA PRIMEIRA VEZ
+1. Abra a pasta do projeto.
+2. De um duplo clique no arquivo:
+   run.bat
+3. O script vai automaticamente:
+   - Detectar o Python.
+   - Criar a pasta .venv.
+   - Instalar todas as dependencias (FastAPI, Uvicorn, SQLite, Pillow, etc).
+   - Carregar o banco de dados existente (sentinel.db).
+   - Abrir o navegador em http://localhost:8000
+
+-----------------------------------------------------------------------------------
+3. COMO FAZER O SISTEMA INICIAR SOZINHO 24 HORAS POR DIA (BOOT AUTOMATICO)
+-----------------------------------------------------------------------------------
+Para que o Sentinel nunca pare de monitorar e suba sozinho mesmo se o servidor
+reiniciar por queda de energia ou atualizacao do Windows:
+
+1. No servidor, pressione as teclas [Win] + [R], digite:
+   taskschd.msc
+   e aperte Enter.
+
+2. No menu da direita do Agendador de Tarefas, clique em:
+   "Criar Tarefa..." (Create Task)
+
+3. Na aba GERAL:
+   - Nome: Sentinel Lucca 24h
+   - Marque a opcao: [X] "Executar estando o usuario conectado ou nao"
+   - Marque a opcao: [X] "Executar com privilegios mais altos"
+   - Em "Configurar para", escolha a versao do seu Windows.
+
+4. Na aba DISPARADORES (Triggers):
+   - Clique no botao "Novo..."
+   - Em "Iniciar a tarefa", selecione: "Na inicializacao do sistema" (At startup).
+   - Clique em OK.
+
+5. Na aba ACOES (Actions):
+   - Clique no botao "Novo..."
+   - Acao: "Iniciar um programa"
+   - Programa/script: C:\Sentinel Lucca\run.bat
+   - Iniciar em (obrigatorio): C:\Sentinel Lucca\
+   - Clique em OK.
+
+6. Clique em OK para salvar. O Windows vai pedir a sua senha de Administrador.
+   Informe e confirme.
+
+Pronto! Agora o sistema roda 24/7 de forma 100% autonoma.
+
+-----------------------------------------------------------------------------------
+4. INSTALANDO EM UM SERVIDOR LINUX (Ubuntu / Debian / AlmaLinux / Rocky)
+-----------------------------------------------------------------------------------
+Se optar por rodar em Linux (otimo para servidores leves sem interface grafica):
+
+1. Atualize os pacotes e instale o Python:
+   sudo apt update && sudo apt install -y python3 python3-venv python3-pip
+
+2. Mova a pasta do projeto para o diretorio do servidor:
+   sudo mv "Projeto Sentinel Lucca" /opt/sentinel-lucca
+   cd /opt/sentinel-lucca
+   chmod +x run.sh
+   ./run.sh
+
+3. Criar servico continuo do Linux (systemd):
+   sudo nano /etc/systemd/system/sentinel.service
+
+   Cole o conteudo abaixo:
+   ----------------------------------------------------------------
+   [Unit]
+   Description=Sentinel Lucca - Central de Monitoramento TI
+   After=network.target
+
+   [Service]
+   Type=simple
+   User=root
+   WorkingDirectory=/opt/sentinel-lucca
+   ExecStart=/opt/sentinel-lucca/.venv/bin/python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+   Restart=always
+   RestartSec=5
+
+   [Install]
+   WantedBy=multi-user.target
+   ----------------------------------------------------------------
+
+   Ative e inicie o servico:
+   sudo systemctl daemon-reload
+   sudo systemctl enable sentinel
+   sudo systemctl start sentinel
+
+-----------------------------------------------------------------------------------
+5. COMO OS COLABORADORES ACESSAM NA REDE
+-----------------------------------------------------------------------------------
+1. Descubra o IP do servidor:
+   No Windows: abra o CMD e digite: ipconfig
+   (Procure o IPv4, por exemplo: 192.168.1.100 ou 172.16.0.50)
+
+2. Em qualquer computador, notebook, tablet ou celular conectado na rede:
+   Abra o navegador (Chrome, Edge, Firefox) e digite:
+   http://IP_DO_SERVIDOR:8000
+
+   Exemplo:
+   http://192.168.1.100:8000
+
+-----------------------------------------------------------------------------------
+6. SUPORTE E TROCA DE SENHA
+-----------------------------------------------------------------------------------
+- Caso esqueca a senha de administrador ou precise criar novos usuarios, acesse
+  a Central de Modulos (Portal) ou o painel de administracao.
+- Todos os acessos e operacoes ficam registrados na aba "Auditoria".
+===================================================================================

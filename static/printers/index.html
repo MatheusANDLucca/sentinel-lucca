@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Sentinel - Gestão e Monitoramento de Impressoras em Rede</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            950: '#060911',
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151'
+                        },
+                        cyanbrand: {
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2',
+                            700: '#0e7490'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="stylesheet" href="/static/printers/css/style.css">
+</head>
+<body class="bg-dark-900 text-slate-100 font-['Inter'] min-h-screen antialiased flex flex-col relative">
+
+    <!-- Kiosk Exit Floating Bar (Exibido apenas em Modo Telão) -->
+    <div id="kioskExitBar" class="fixed top-3 right-4 z-50 hidden items-center gap-3 bg-dark-950/90 border border-cyan-500/40 backdrop-blur px-3.5 py-1.5 rounded-xl shadow-2xl">
+        <span class="text-xs font-bold text-cyan-400 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-cyan-500 animate-ping"></span>
+            MODO TELÃO ATIVO
+        </span>
+        <button onclick="toggleKioskMode()" class="px-2.5 py-1 rounded-lg bg-rose-600/80 hover:bg-rose-500 text-white text-[11px] font-semibold transition flex items-center gap-1 shadow">
+            <i data-lucide="minimize-2" class="w-3.5 h-3.5"></i>
+            <span>Sair do Telão (ESC)</span>
+        </button>
+    </div>
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-dark-800/90 backdrop-blur border-b border-dark-700 sticky top-0 z-30 px-4 lg:px-8 py-3 transition-all">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            
+            <!-- Logo & Title -->
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/20">
+                    <i data-lucide="printer" class="w-5 h-5 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-base lg:text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                        Print Sentinel
+                        <span class="text-[10px] px-2 py-0.5 rounded-full font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">v1.0</span>
+                    </h1>
+                    <p class="text-[11px] text-slate-400">Monitoramento de Impressoras em Rede & Teste de Impressão</p>
+                </div>
+            </div>
+
+            <!-- Central Indicators: Clock & Realtime Status -->
+            <div class="hidden md:flex items-center gap-3 text-xs font-medium">
+                <div class="flex items-center gap-2 bg-dark-700/60 px-3 py-1.5 rounded-lg border border-dark-600">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-slate-400"></i>
+                    <span id="currentClock" class="text-slate-200">--:--:--</span>
+                </div>
+                
+                <div id="wsStatusBadge" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </span>
+                    <span id="wsStatusText">Tempo Real Conectado</span>
+                </div>
+            </div>
+
+            <!-- Top Actions & User Section -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <!-- Central de Módulos (Hub) -->
+                <a href="/portal" title="Central de Módulos Sentinel" class="p-2 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 hover:text-cyan-300 transition flex items-center gap-1.5 text-xs font-semibold">
+                    <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Módulos</span>
+                </a>
+
+                <!-- Toggle Modo Telão (TV / Kiosk) -->
+                <button id="btnKioskMode" onclick="toggleKioskMode()" title="Modo Telão (Painel TV / Apresentação)" class="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 border border-dark-600 text-amber-400 hover:text-white transition flex items-center gap-1 text-xs font-medium">
+                    <i data-lucide="tv" class="w-4 h-4"></i>
+                    <span class="hidden xl:inline">Modo Telão</span>
+                </button>
+
+                <!-- Toggle Som de Alerta -->
+                <button id="btnSoundToggle" onclick="toggleSoundAlert()" title="Ativar/Desativar Alarme Sonoro de Queda" class="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 border border-dark-600 text-slate-300 hover:text-white transition flex items-center gap-1 text-xs">
+                    <i data-lucide="volume-2" id="soundIcon" class="w-4 h-4 text-emerald-400"></i>
+                    <span class="hidden xl:inline" id="soundText">Som Ativo</span>
+                </button>
+
+                <!-- Forçar Varredura Imediata -->
+                <button id="btnRefreshAll" onclick="triggerCheckAll()" title="Varredura Imediata de Todas as Impressoras" class="p-2 rounded-lg bg-dark-700 hover:bg-dark-600 border border-dark-600 text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs">
+                    <i data-lucide="refresh-cw" id="refreshIcon" class="w-4 h-4 text-cyan-400"></i>
+                    <span class="hidden lg:inline">Verificar</span>
+                </button>
+
+                <!-- Importar Planilha -->
+                <button id="btnImportHeader" onclick="openImportModal()" title="Importar Planilha Excel ou CSV" class="bg-dark-700 hover:bg-dark-600 border border-dark-600 text-slate-200 hover:text-white text-xs font-semibold px-3 py-2 rounded-lg flex items-center gap-1.5 transition">
+                    <i data-lucide="file-spreadsheet" class="w-4 h-4 text-emerald-400"></i>
+                    <span class="hidden sm:inline">Importar Planilha</span>
+                </button>
+
+                <!-- Botão Adicionar Impressora -->
+                <button id="btnAddPrinterHeader" onclick="openPrinterModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-lg shadow-cyan-600/30 flex items-center gap-1.5 transition active:scale-95">
+                    <i data-lucide="plus-circle" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Nova Impressora</span>
+                </button>
+
+                <!-- Botão Painel Administrador -->
+                <button id="btnAdminPanel" onclick="openAdminModal()" class="hidden bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-lg shadow-indigo-600/30 flex items-center gap-1.5 transition active:scale-95">
+                    <i data-lucide="shield" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Painel Admin</span>
+                </button>
+
+                <!-- Menu de Usuário -->
+                <div class="relative" id="userMenuWrapper">
+                    <button onclick="toggleUserDropdown()" id="btnUserMenu" class="flex items-center gap-2 bg-dark-700 hover:bg-dark-600 border border-dark-600 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-200 transition">
+                        <div class="w-5 h-5 rounded-full bg-cyan-600/30 border border-cyan-500/50 flex items-center justify-center text-[10px] text-cyan-300 font-bold" id="userAvatarText">TI</div>
+                        <span id="navUserName" class="hidden sm:inline">Carregando...</span>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+
+                    <!-- Dropdown -->
+                    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-52 bg-dark-800 border border-dark-700 rounded-xl shadow-2xl py-1.5 z-40 text-xs">
+                        <div class="px-3 py-2 border-b border-dark-700/60">
+                            <p class="font-semibold text-white truncate" id="dropdownFullName">Nome</p>
+                            <p class="text-[10px] text-cyan-400 capitalize" id="dropdownRole">Perfil</p>
+                        </div>
+                        <a href="/portal" class="w-full text-left px-3 py-2 hover:bg-dark-700/60 text-cyan-400 hover:text-cyan-300 flex items-center gap-2">
+                            <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                            <span>Central de Módulos</span>
+                        </a>
+                        <a href="/cftv/" class="w-full text-left px-3 py-2 hover:bg-dark-700/60 text-indigo-400 hover:text-indigo-300 flex items-center gap-2">
+                            <i data-lucide="video" class="w-4 h-4"></i>
+                            <span>Ir para CFTV Sentinel</span>
+                        </a>
+                        <button onclick="openChangePasswordModal()" class="w-full text-left px-3 py-2 hover:bg-dark-700/60 text-slate-300 hover:text-white flex items-center gap-2">
+                            <i data-lucide="key" class="w-4 h-4 text-slate-400"></i>
+                            <span>Alterar Senha</span>
+                        </button>
+                        <button onclick="handleLogout()" class="w-full text-left px-3 py-2 hover:bg-rose-500/10 text-rose-400 hover:text-rose-300 flex items-center gap-2 border-t border-dark-700/60">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span>Sair do Sistema</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto w-full px-4 lg:px-8 py-5 flex-1 flex flex-col gap-5">
+
+        <!-- KPI Metrics Summary Row -->
+        <section class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            <!-- Total -->
+            <div class="bg-dark-800/80 border border-dark-700/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-slate-400 mb-1">
+                    <span class="text-[11px] font-medium uppercase tracking-wider">Total</span>
+                    <i data-lucide="printer" class="w-4 h-4 text-slate-400"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-white" id="metricTotal">0</span>
+                    <span class="text-[11px] text-slate-500">dispositivos</span>
+                </div>
+            </div>
+
+            <!-- Online -->
+            <div class="bg-dark-800/80 border border-dark-700/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-emerald-400 mb-1">
+                    <span class="text-[11px] font-medium uppercase tracking-wider">Online</span>
+                    <i data-lucide="check-circle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-emerald-400" id="metricOnline">0</span>
+                    <span class="text-[11px] text-slate-500">ativas</span>
+                </div>
+            </div>
+
+            <!-- Alerta / Sleep -->
+            <div class="bg-dark-800/80 border border-dark-700/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-amber-400 mb-1">
+                    <span class="text-[11px] font-medium uppercase tracking-wider">Em Alerta</span>
+                    <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-amber-400" id="metricWarning">0</span>
+                    <span class="text-[11px] text-slate-500">atenção</span>
+                </div>
+            </div>
+
+            <!-- Offline -->
+            <div class="bg-dark-800/80 border border-dark-700/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-rose-400 mb-1">
+                    <span class="text-[11px] font-medium uppercase tracking-wider">Offline</span>
+                    <i data-lucide="x-circle" class="w-4 h-4"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-rose-400" id="metricOffline">0</span>
+                    <span class="text-[11px] text-slate-500">sem sinal</span>
+                </div>
+            </div>
+
+            <!-- SLA -->
+            <div class="bg-dark-800/80 border border-dark-700/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-cyan-400 mb-1">
+                    <span class="text-[11px] font-medium uppercase tracking-wider">SLA Rede</span>
+                    <i data-lucide="activity" class="w-4 h-4"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-cyan-400" id="metricSla">100%</span>
+                    <span class="text-[11px] text-slate-500">disponib.</span>
+                </div>
+            </div>
+
+            <!-- Latência Média -->
+            <div class="bg-dark-800/80 border border-dark-700/80 rounded-xl p-3.5 flex flex-col justify-between shadow-sm">
+                <div class="flex items-center justify-between text-blue-400 mb-1">
+                    <span class="text-[11px] font-medium uppercase tracking-wider">Média Ping</span>
+                    <i data-lucide="zap" class="w-4 h-4"></i>
+                </div>
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-blue-400" id="metricLatency">--</span>
+                    <span class="text-[11px] text-slate-500">ms</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Navigation Tabs: FILIAIS DA EMPRESA -->
+        <section class="bg-dark-800/60 border border-dark-700/80 rounded-xl p-2.5">
+            <div class="flex items-center justify-between gap-2 mb-2 px-1">
+                <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="building-2" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    Filiais Cadastradas
+                </span>
+                <span class="text-[11px] text-slate-500" id="branchCountText">Carregando...</span>
+            </div>
+            <!-- Horizontal scrollable branch buttons -->
+            <div class="flex items-center gap-2 overflow-x-auto pb-1" id="branchTabsContainer">
+                <button onclick="selectBranch('Todas')" class="branch-tab-btn active text-xs font-semibold px-3 py-1.5 rounded-lg border border-dark-600 bg-dark-700 hover:bg-dark-600 text-slate-200 transition flex-shrink-0 flex items-center gap-1.5">
+                    <span>Todas as Filiais</span>
+                    <span class="bg-dark-900/80 text-cyan-400 px-1.5 py-0.2 rounded text-[10px]" id="badgeAllCount">0</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Controls Toolbar: Status, Search, Brand and Export -->
+        <section class="flex flex-wrap items-center justify-between gap-3 bg-dark-800/40 p-3 rounded-xl border border-dark-700/60">
+            <!-- Status Filter Pills -->
+            <div class="flex items-center gap-1.5 bg-dark-950/60 p-1 rounded-lg border border-dark-700/80 text-xs">
+                <button onclick="setStatusFilter('all')" class="status-filter-btn active px-3 py-1 rounded-md text-slate-300 font-medium transition" id="filterStatusAll">Todos</button>
+                <button onclick="setStatusFilter('online')" class="status-filter-btn px-3 py-1 rounded-md text-emerald-400 font-medium transition" id="filterStatusOnline">Online</button>
+                <button onclick="setStatusFilter('warning')" class="status-filter-btn px-3 py-1 rounded-md text-amber-400 font-medium transition" id="filterStatusWarning">Alerta</button>
+                <button onclick="setStatusFilter('offline')" class="status-filter-btn px-3 py-1 rounded-md text-rose-400 font-medium transition" id="filterStatusOffline">Offline</button>
+            </div>
+
+            <!-- Search, Brand Selector & Export -->
+            <div class="flex items-center gap-2.5 flex-1 max-w-xl justify-end flex-wrap">
+                <!-- Search Box -->
+                <div class="relative flex-1 min-w-[180px]">
+                    <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                    <input type="text" id="searchInput" oninput="handleSearch(this.value)" placeholder="Buscar por IP, DNS, Gateway, Nome, Modelo..." class="w-full bg-dark-950/70 border border-dark-600 rounded-lg pl-9 pr-8 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition">
+                    <button id="clearSearchBtn" onclick="clearSearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200">
+                        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <!-- Brand Filter -->
+                <select id="brandFilterSelect" onchange="handleBrandFilter(this.value)" class="bg-dark-950/70 border border-dark-600 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-cyan-500">
+                    <option value="">Todas as Marcas</option>
+                    <option value="HP">HP</option>
+                    <option value="Brother">Brother</option>
+                    <option value="Epson">Epson</option>
+                    <option value="Zebra">Zebra</option>
+                    <option value="Kyocera">Kyocera</option>
+                    <option value="Elgin">Elgin</option>
+                    <option value="Canon">Canon</option>
+                    <option value="Lexmark">Lexmark</option>
+                </select>
+
+                <!-- Export CSV -->
+                <button onclick="exportCurrentViewCsv()" title="Exportar Lista para Excel (CSV)" class="bg-dark-700 hover:bg-dark-600 border border-dark-600 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5">
+                    <i data-lucide="download" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    <span class="hidden sm:inline">Exportar</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Printers Grid Container -->
+        <section>
+            <div id="printersGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                <!-- Cards renderizados dinamicamente via app.js -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-dark-800/80 border border-dark-700 flex items-center justify-center text-slate-500 mb-3 shadow">
+                    <i data-lucide="printer" class="w-8 h-8"></i>
+                </div>
+                <h3 class="text-sm font-semibold text-slate-300">Nenhuma impressora encontrada</h3>
+                <p class="text-xs text-slate-500 mt-1 max-w-sm">Tente ajustar os filtros, buscar por outro termo ou cadastre uma nova impressora no botão acima.</p>
+                <button onclick="openPrinterModal()" class="mt-4 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition shadow">
+                    Cadastrar Impressora
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-dark-800 bg-dark-950/60 py-3 px-4 text-center text-xs text-slate-500">
+        <p>Print Sentinel &copy; 2026 - Sistema Corporativo de Gestão de Impressoras em Rede</p>
+    </footer>
+
+    <!-- ==================== MODAIS ==================== -->
+
+    <!-- 1. MODAL DE CADASTRO / EDIÇÃO DE IMPRESSORA -->
+    <div id="printerModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-dark-900 border border-dark-700 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
+            
+            <!-- Modal Header -->
+            <div class="px-5 py-4 border-b border-dark-700 flex items-center justify-between bg-dark-800/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <i data-lucide="printer" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white" id="printerModalTitle">Nova Impressora</h3>
+                        <p class="text-[11px] text-slate-400">Cadastre ou edite as informações do equipamento na rede</p>
+                    </div>
+                </div>
+                <button onclick="closePrinterModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Tabs de Navegação do Formulário -->
+            <div class="flex border-b border-dark-700 bg-dark-950/40 text-xs">
+                <button type="button" onclick="switchPrinterTab('tab-general')" id="btnTabGeneral" class="px-4 py-2.5 font-semibold text-cyan-400 border-b-2 border-cyan-400 flex items-center gap-1.5">
+                    <i data-lucide="info" class="w-3.5 h-3.5"></i>
+                    Identificação & Filial
+                </button>
+                <button type="button" onclick="switchPrinterTab('tab-network')" id="btnTabNetwork" class="px-4 py-2.5 font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5">
+                    <i data-lucide="network" class="w-3.5 h-3.5"></i>
+                    Rede (IP, DNS, Gateway)
+                </button>
+                <button type="button" onclick="switchPrinterTab('tab-supplies')" id="btnTabSupplies" class="px-4 py-2.5 font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5">
+                    <i data-lucide="package" class="w-3.5 h-3.5"></i>
+                    Suprimentos & Segurança
+                </button>
+            </div>
+
+            <!-- Form Body -->
+            <form id="printerForm" onsubmit="handleSavePrinter(event)" class="p-5 overflow-y-auto space-y-4 text-xs">
+                <input type="hidden" id="formPrinterId" value="">
+
+                <!-- ABA 1: Identificação & Filial -->
+                <div id="tab-general" class="space-y-3.5">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Nome da Impressora *</label>
+                            <input type="text" id="formName" required placeholder="Ex: HP Faturamento, Brother RH" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Filial / Unidade *</label>
+                            <input type="text" id="formBranch" list="branchSuggestions" required placeholder="Ex: Matriz, Filial 01 - Centro" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                            <datalist id="branchSuggestions"></datalist>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Departamento / Setor</label>
+                            <input type="text" id="formDepartment" placeholder="Ex: Expedição, Financeiro" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Fabricante / Marca *</label>
+                            <select id="formBrand" required class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
+                                <option value="HP">HP</option>
+                                <option value="Brother">Brother</option>
+                                <option value="Epson">Epson</option>
+                                <option value="Zebra">Zebra</option>
+                                <option value="Kyocera">Kyocera</option>
+                                <option value="Elgin">Elgin</option>
+                                <option value="Canon">Canon</option>
+                                <option value="Lexmark">Lexmark</option>
+                                <option value="Samsung">Samsung</option>
+                                <option value="Outra">Outra</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Modelo do Equipamento</label>
+                            <input type="text" id="formModel" placeholder="Ex: LaserJet M404dw, ZD220" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Tipo de Impressora</label>
+                            <select id="formPrinterType" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
+                                <option value="laser_mono">Laser Monocromática (P/B)</option>
+                                <option value="laser_color">Laser Colorida</option>
+                                <option value="ink_tank">Tanque de Tinta / Jato</option>
+                                <option value="thermal_label">Térmica de Etiquetas (Zebra/Argox)</option>
+                                <option value="thermal_receipt">Térmica de Recibos/Cupons (80mm/58mm)</option>
+                                <option value="multifuncional">Multifuncional com Scanner</option>
+                                <option value="dot_matrix">Matricial</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Número de Série (NS)</label>
+                            <input type="text" id="formSerialNumber" placeholder="Ex: VNB3K12345" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA 2: Configurações de Rede (IP, DNS, Gateway) -->
+                <div id="tab-network" class="space-y-3.5 hidden">
+                    <div class="p-3 bg-cyan-950/30 border border-cyan-800/40 rounded-xl text-[11px] text-cyan-300 flex items-start gap-2">
+                        <i data-lucide="info" class="w-4 h-4 flex-shrink-0 mt-0.5 text-cyan-400"></i>
+                        <span>Estes parâmetros serão utilizados para o monitoramento contínuo de ping ICMP, teste da porta 9100 RAW e envio de testes de impressão via rede.</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Endereço IP na Rede *</label>
+                            <input type="text" id="formIp" required placeholder="Ex: 192.168.1.150" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-cyan-300 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono font-semibold">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Servidor DNS Configurado</label>
+                            <input type="text" id="formDns" placeholder="Ex: 192.168.1.10 ou 8.8.8.8" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Gateway Padrão</label>
+                            <input type="text" id="formGateway" placeholder="Ex: 192.168.1.1" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Máscara de Sub-rede</label>
+                            <input type="text" id="formSubnetMask" value="255.255.255.0" placeholder="Ex: 255.255.255.0" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Porta de Impressão RAW</label>
+                            <input type="number" id="formPort" value="9100" min="1" max="65535" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500 font-mono">
+                            <span class="text-[10px] text-slate-500">Padrão JetDirect: 9100</span>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Porta Web (EWS)</label>
+                            <input type="number" id="formWebPort" value="80" min="1" max="65535" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500 font-mono">
+                            <span class="text-[10px] text-slate-500">Painel Web: 80 / 443</span>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Endereço MAC (Físico)</label>
+                            <input type="text" id="formMacAddress" placeholder="Ex: 00:1E:68:AA:BB:CC" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ABA 3: Suprimentos & Segurança -->
+                <div id="tab-supplies" class="space-y-3.5 hidden">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Modelo de Toner / Cartucho</label>
+                            <input type="text" id="formTonerModel" placeholder="Ex: CF258A (HP 58A), TN-2370" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">PIN / Senha do Painel da Impressora</label>
+                            <div class="relative">
+                                <input type="password" id="formPin" placeholder="Senha/PIN de admin do equipamento" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg pl-3 pr-9 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono">
+                                <button type="button" onclick="toggleFormPinVisibility()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white p-1">
+                                    <i data-lucide="eye" id="formPinEye" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Propriedade do Equipamento</label>
+                            <select id="formOwnership" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
+                                <option value="propria">Própria da Empresa</option>
+                                <option value="locada">Locada / Outsourcing de Impressão</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-medium text-slate-300 mb-1">Contato Suporte / Locadora</label>
+                            <input type="text" id="formVendorContact" placeholder="Ex: Arilmaq (38) 9999-9999" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Observações Técnicas</label>
+                        <textarea id="formNotes" rows="2" placeholder="Informações de localização física, IP reservado no DHCP, etc." class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500"></textarea>
+                    </div>
+                </div>
+
+                <!-- Form Action Buttons -->
+                <div class="pt-3 border-t border-dark-700/80 flex items-center justify-between gap-2">
+                    <button type="button" id="btnDeletePrinter" onclick="deleteCurrentPrinter()" class="hidden bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-600/40 px-3 py-2 rounded-lg font-semibold transition flex items-center gap-1.5">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>Excluir Impressora</span>
+                    </button>
+                    <div class="flex items-center gap-2 ml-auto">
+                        <button type="button" onclick="closePrinterModal()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white rounded-lg transition font-medium">Cancelar</button>
+                        <button type="submit" id="btnSavePrinterSubmit" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition font-semibold shadow-lg shadow-cyan-600/30 flex items-center gap-1.5">
+                            <i data-lucide="save" class="w-4 h-4"></i>
+                            <span id="btnSavePrinterText">Salvar Impressora</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- 2. MODAL DE IMPRESSÃO DE TESTE DE REDE (TEST PRINT) -->
+    <div id="testPrintModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-dark-900 border border-dark-700 rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
+            
+            <div class="px-5 py-4 border-b border-dark-700 flex items-center justify-between bg-dark-800/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-600/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <i data-lucide="printer-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Enviar Impressão de Teste</h3>
+                        <p class="text-[11px] text-slate-400">Teste de comunicação direta via Socket RAW (Porta 9100)</p>
+                    </div>
+                </div>
+                <button onclick="closeTestPrintModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto space-y-4 text-xs">
+                <!-- Informações do Alvo -->
+                <div class="bg-dark-950/70 border border-dark-700 rounded-xl p-3.5 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-white text-sm" id="testPrintPrinterName">Nome da Impressora</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-dark-800 text-cyan-400 border border-cyan-500/30" id="testPrintBranch">Filial</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-400">
+                        <div>IP: <span class="font-mono text-slate-200 font-semibold" id="testPrintIp">192.168.1.X</span></div>
+                        <div>Porta: <span class="font-mono text-slate-200" id="testPrintPort">9100 (RAW)</span></div>
+                        <div>Modelo: <span class="text-slate-200" id="testPrintModel">LaserJet</span></div>
+                        <div>Status Atual: <span class="font-semibold" id="testPrintStatus">Online</span></div>
+                    </div>
+                </div>
+
+                <!-- Seleção do Tipo de Teste -->
+                <div>
+                    <label class="block font-medium text-slate-300 mb-2">Formato da Página de Teste</label>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                        <label class="border border-dark-600 bg-dark-950/60 hover:border-cyan-500 rounded-xl p-2.5 cursor-pointer flex flex-col gap-1 transition test-type-option has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-950/20">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-white">Universal / PCL</span>
+                                <input type="radio" name="testPrintType" value="standard_network" checked class="text-cyan-600 focus:ring-0">
+                            </div>
+                            <span class="text-[10px] text-slate-400">Laser, Jato e Multifuncionais A4 (HP, Brother, Epson, etc.)</span>
+                        </label>
+
+                        <label class="border border-dark-600 bg-dark-950/60 hover:border-cyan-500 rounded-xl p-2.5 cursor-pointer flex flex-col gap-1 transition test-type-option has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-950/20">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-white">Etiqueta ZPL</span>
+                                <input type="radio" name="testPrintType" value="zebra_zpl" class="text-cyan-600 focus:ring-0">
+                            </div>
+                            <span class="text-[10px] text-slate-400">Térmicas Zebra, Argox (etiquetas adesivas com código)</span>
+                        </label>
+
+                        <label class="border border-dark-600 bg-dark-950/60 hover:border-cyan-500 rounded-xl p-2.5 cursor-pointer flex flex-col gap-1 transition test-type-option has-[:checked]:border-cyan-500 has-[:checked]:bg-cyan-950/20">
+                            <div class="flex items-center justify-between">
+                                <span class="font-semibold text-white">Recibo ESC/POS</span>
+                                <input type="radio" name="testPrintType" value="escpos" class="text-cyan-600 focus:ring-0">
+                            </div>
+                            <span class="text-[10px] text-slate-400">Cupom térmico não fiscal (Elgin, Bematech 80mm)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Mensagem Opcional -->
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Mensagem Opcional na Folha</label>
+                    <input type="text" id="testPrintCustomMsg" placeholder="Ex: Teste técnico de bancada / troca de suprimento" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                </div>
+
+                <!-- Feedback de Envio -->
+                <div id="testPrintFeedback" class="hidden p-3.5 rounded-xl text-xs flex items-start gap-2.5 border">
+                    <i data-lucide="info" id="testPrintFeedbackIcon" class="w-4 h-4 flex-shrink-0 mt-0.5"></i>
+                    <div class="flex-1">
+                        <p class="font-semibold" id="testPrintFeedbackTitle">Título</p>
+                        <p class="text-[11px] mt-0.5" id="testPrintFeedbackMsg">Mensagem detalhada...</p>
+                    </div>
+                </div>
+
+                <!-- Histórico de Testes desta impressora -->
+                <div>
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Últimos Testes Enviados</span>
+                    </div>
+                    <div id="testPrintHistoryList" class="max-h-28 overflow-y-auto space-y-1.5 border border-dark-700/80 rounded-xl p-2 bg-dark-950/40 text-[11px]">
+                        <p class="text-slate-500 text-center py-2">Nenhum teste recente registrado.</p>
+                    </div>
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="pt-3 border-t border-dark-700/80 flex items-center justify-between gap-2">
+                    <button type="button" onclick="printBrowserTestSheet()" class="px-3 py-2 bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white rounded-lg transition font-medium flex items-center gap-1.5 text-xs">
+                        <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                        <span>Gerar Folha Navegador</span>
+                    </button>
+                    <div class="flex items-center gap-2">
+                        <button type="button" onclick="closeTestPrintModal()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white rounded-lg transition font-medium">Fechar</button>
+                        <button type="button" id="btnExecuteTestPrint" onclick="sendTestPrintNow()" class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg transition font-semibold shadow-lg shadow-cyan-600/30 flex items-center gap-1.5">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                            <span id="btnExecuteTestPrintText">Enviar Teste Agora</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 3. MODAL DE IMPORTAÇÃO DE PLANILHA EXCEL / CSV -->
+    <div id="importModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-dark-900 border border-dark-700 rounded-2xl max-w-xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
+            
+            <div class="px-5 py-4 border-b border-dark-700 flex items-center justify-between bg-dark-800/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                        <i data-lucide="file-spreadsheet" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Importar Impressoras em Massa</h3>
+                        <p class="text-[11px] text-slate-400">Carregue dados de planilhas Excel (.xlsx) ou arquivos .csv</p>
+                    </div>
+                </div>
+                <button onclick="closeImportModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto space-y-4 text-xs">
+                <!-- Botão de Importação Automática da Planilha Local -->
+                <div class="p-4 bg-emerald-950/30 border border-emerald-500/40 rounded-xl space-y-2">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-2.5">
+                            <i data-lucide="sparkles" class="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5"></i>
+                            <div>
+                                <h4 class="font-bold text-white text-xs">Importação Rápida da Planilha da TI</h4>
+                                <p class="text-[11px] text-emerald-300/80 mt-0.5">Detectamos o arquivo na sua pasta Documents: <br><code class="font-mono text-emerald-300 font-bold">Planilha impressoras IP Ns e pin.xlsx</code></p>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" onclick="importLocalDocumentsSheet()" id="btnQuickImport" class="w-full mt-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2 px-3 rounded-lg shadow-lg shadow-emerald-600/30 transition flex items-center justify-center gap-2">
+                        <i data-lucide="upload-cloud" class="w-4 h-4"></i>
+                        <span id="btnQuickImportText">Importar Planilha Local em 1 Clique</span>
+                    </button>
+                </div>
+
+                <!-- Upload Manual de Arquivo -->
+                <div class="space-y-2">
+                    <label class="block font-medium text-slate-300">Ou envie outro arquivo do computador (.xlsx ou .csv):</label>
+                    <div class="border-2 border-dashed border-dark-600 hover:border-cyan-500 rounded-xl p-6 text-center bg-dark-950/40 cursor-pointer transition" onclick="document.getElementById('fileUploadInput').click()">
+                        <i data-lucide="upload" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
+                        <p class="text-xs text-slate-200 font-medium">Clique para selecionar ou arraste o arquivo aqui</p>
+                        <p class="text-[10px] text-slate-500 mt-1">Formatos aceitos: Microsoft Excel (.xlsx) ou CSV com separador vírgula/ponto-e-vírgula</p>
+                        <input type="file" id="fileUploadInput" accept=".xlsx,.csv,.txt" class="hidden" onchange="handleFileSelected(event)">
+                    </div>
+                    <p id="selectedFileName" class="text-[11px] text-cyan-400 font-mono hidden truncate"></p>
+                </div>
+
+                <!-- Mapeamento de Colunas Reconhecidas -->
+                <div class="bg-dark-950/60 border border-dark-700/80 rounded-xl p-3 text-[11px] text-slate-400 space-y-1">
+                    <span class="font-semibold text-slate-300 block mb-1">Colunas suportadas automaticamente:</span>
+                    <p>• <strong>Filial:</strong> Filial, Unidade, Loja</p>
+                    <p>• <strong>Identificação:</strong> Nome, Impressora, Modelo, Fabricante, Setor</p>
+                    <p>• <strong>Rede:</strong> Endereço IP, DNS, Gateway, Máscara</p>
+                    <p>• <strong>Outros:</strong> Número de Série (NS), PIN / Senha, Modelo do Toner</p>
+                </div>
+
+                <!-- Resultado da Importação -->
+                <div id="importResultAlert" class="hidden p-3.5 rounded-xl border text-xs">
+                    <p class="font-semibold" id="importResultTitle">Resultado</p>
+                    <p class="text-[11px] mt-0.5" id="importResultMsg">Detalhes...</p>
+                </div>
+
+                <div class="pt-3 border-t border-dark-700 flex justify-end gap-2">
+                    <button type="button" onclick="closeImportModal()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white rounded-lg transition font-medium">Fechar</button>
+                    <button type="button" id="btnUploadManual" onclick="uploadSelectedFile()" disabled class="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:pointer-events-none text-white rounded-lg transition font-semibold flex items-center gap-1.5">
+                        <i data-lucide="check" class="w-4 h-4"></i>
+                        <span>Processar Arquivo</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 4. MODAL PAINEL ADMINISTRADOR & AUDITORIA -->
+    <div id="adminModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+        <div class="bg-dark-900 border border-dark-700 rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden flex flex-col my-auto max-h-[92vh]">
+            
+            <div class="px-5 py-4 border-b border-dark-700 flex items-center justify-between bg-dark-800/50">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+                        <i data-lucide="shield-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-white">Painel Administrativo & Auditoria</h3>
+                        <p class="text-[11px] text-slate-400">Gerenciamento de acessos de colaboradores e histórico de ações</p>
+                    </div>
+                </div>
+                <button onclick="closeAdminModal()" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Admin Tabs -->
+            <div class="flex border-b border-dark-700 bg-dark-950/40 text-xs">
+                <button type="button" onclick="switchAdminTab('admin-tab-users')" id="btnAdminTabUsers" class="px-4 py-2.5 font-semibold text-indigo-400 border-b-2 border-indigo-400 flex items-center gap-1.5">
+                    <i data-lucide="users" class="w-3.5 h-3.5"></i>
+                    Gestão de Usuários
+                </button>
+                <button type="button" onclick="switchAdminTab('admin-tab-audit')" id="btnAdminTabAudit" class="px-4 py-2.5 font-semibold text-slate-400 hover:text-slate-200 border-b-2 border-transparent flex items-center gap-1.5">
+                    <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                    Logs de Auditoria de TI
+                </button>
+            </div>
+
+            <div class="p-5 overflow-y-auto space-y-4 text-xs flex-1">
+                
+                <!-- ABA USUÁRIOS -->
+                <div id="admin-tab-users" class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-white text-xs">Usuários Cadastrados</span>
+                        <button onclick="openCreateUserForm()" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1 transition">
+                            <i data-lucide="user-plus" class="w-3.5 h-3.5"></i>
+                            <span>Novo Usuário</span>
+                        </button>
+                    </div>
+
+                    <!-- Formulário Rápido de Novo Usuário -->
+                    <form id="newUserForm" onsubmit="handleCreateUser(event)" class="hidden p-3.5 bg-dark-950/70 border border-dark-700 rounded-xl space-y-3">
+                        <h4 class="font-semibold text-indigo-300">Cadastrar Novo Usuário</h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-slate-400 mb-1">Nome Completo</label>
+                                <input type="text" id="newFullName" required placeholder="Ex: Carlos TI" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-2.5 py-1.5 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Nome de Usuário</label>
+                                <input type="text" id="newUsername" required placeholder="Ex: carlos" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-2.5 py-1.5 text-white">
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Perfil de Acesso</label>
+                                <select id="newRole" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-2.5 py-1.5 text-white">
+                                    <option value="operador">Operador TI (Edita & Imprime Testes)</option>
+                                    <option value="admin">Administrador (Controle Total)</option>
+                                    <option value="visualizador">Visualizador (Apenas Consulta)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <div>
+                                <label class="block text-cyan-400 font-semibold mb-1">Acesso aos Módulos</label>
+                                <select id="newAllowedModules" class="w-full bg-dark-900 border border-cyan-500/40 rounded-lg px-2.5 py-1.5 text-white">
+                                    <option value="all">🌟 Todos os Módulos</option>
+                                    <option value="printers" selected>🖨️ Apenas Impressoras</option>
+                                    <option value="cftv">📹 Apenas CFTV</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-slate-400 mb-1">Senha Inicial</label>
+                                <input type="password" id="newPassword" required placeholder="Mínimo 4 caracteres" class="w-full bg-dark-900 border border-dark-600 rounded-lg px-2.5 py-1.5 text-white">
+                            </div>
+                            <div class="flex items-end gap-2">
+                                <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-1.5 rounded-lg transition">Salvar</button>
+                                <button type="button" onclick="closeCreateUserForm()" class="bg-dark-700 hover:bg-dark-600 text-slate-300 px-3 py-1.5 rounded-lg transition">Cancelar</button>
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Lista de Usuários -->
+                    <div class="border border-dark-700 rounded-xl overflow-hidden bg-dark-950/40">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-dark-700 bg-dark-800/60 text-slate-400 text-[11px]">
+                                    <th class="p-2.5">Nome</th>
+                                    <th class="p-2.5">Usuário</th>
+                                    <th class="p-2.5">Perfil</th>
+                                    <th class="p-2.5 text-cyan-400 font-semibold">Módulos</th>
+                                    <th class="p-2.5">Status</th>
+                                    <th class="p-2.5">Último Acesso</th>
+                                    <th class="p-2.5 text-right">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody" class="divide-y divide-dark-700/60 text-[11px]">
+                                <!-- Preenchido dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- ABA AUDITORIA -->
+                <div id="admin-tab-audit" class="space-y-3 hidden">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <div class="relative flex-1 min-w-[200px]">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="auditSearchInput" oninput="loadAuditLogs(this.value)" placeholder="Buscar nos logs por usuário, ação ou impressora..." class="w-full bg-dark-950/80 border border-dark-600 rounded-lg pl-9 pr-3 py-1.5 text-xs text-white">
+                        </div>
+                        <button onclick="exportAuditLogsCsv()" class="bg-dark-700 hover:bg-dark-600 border border-dark-600 text-slate-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
+                            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                            <span>Exportar CSV</span>
+                        </button>
+                    </div>
+
+                    <div class="border border-dark-700 rounded-xl overflow-hidden bg-dark-950/40 max-h-96 overflow-y-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-dark-700 bg-dark-800/60 text-slate-400 text-[11px] sticky top-0">
+                                    <th class="p-2.5">Data/Hora</th>
+                                    <th class="p-2.5">Usuário</th>
+                                    <th class="p-2.5">Ação</th>
+                                    <th class="p-2.5">Detalhes</th>
+                                    <th class="p-2.5">IP Origem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody" class="divide-y divide-dark-700/60 text-[11px] font-mono">
+                                <!-- Preenchido dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="p-4 border-t border-dark-700 flex justify-end">
+                <button onclick="closeAdminModal()" class="px-4 py-2 bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white rounded-lg transition font-medium">Fechar</button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- 5. MODAL ALTERAR SENHA DO USUÁRIO ATUAL -->
+    <div id="changePasswordModal" class="fixed inset-0 z-50 hidden bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-dark-900 border border-dark-700 rounded-2xl max-w-md w-full shadow-2xl p-5 space-y-4 text-xs">
+            <div class="flex items-center justify-between border-b border-dark-700 pb-3">
+                <h3 class="font-bold text-white text-sm">Alterar Minha Senha</h3>
+                <button onclick="closeChangePasswordModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <form onsubmit="handleChangePassword(event)" class="space-y-3">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Senha Atual</label>
+                    <input type="password" id="currentPassword" required class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-white">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Nova Senha</label>
+                    <input type="password" id="newPasswordInput" required minlength="4" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-white">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Confirmar Nova Senha</label>
+                    <input type="password" id="confirmNewPasswordInput" required minlength="4" class="w-full bg-dark-950/80 border border-dark-600 rounded-lg px-3 py-2 text-white">
+                </div>
+                <div class="pt-2 flex justify-end gap-2">
+                    <button type="button" onclick="closeChangePasswordModal()" class="px-3 py-1.5 bg-dark-700 hover:bg-dark-600 rounded-lg text-slate-300">Cancelar</button>
+                    <button type="submit" class="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 font-semibold text-white rounded-lg">Atualizar Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastContainer" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full"></div>
+
+    <!-- Scripts -->
+    <script src="/static/printers/js/app.js"></script>
+</body>
+</html>

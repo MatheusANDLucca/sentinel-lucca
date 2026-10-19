@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Sentinel Lucca | Central de Gestão TI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            950: '#060911',
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151'
+                        },
+                        brand: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        },
+                        cyanbrand: {
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-card {
+            background: rgba(11, 15, 25, 0.88);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+    </style>
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen antialiased flex items-center justify-center p-4 relative overflow-hidden">
+
+    <!-- Background glowing ambient lights -->
+    <div class="absolute -top-40 -left-40 w-96 h-96 bg-blue-600/20 rounded-full blur-[140px] pointer-events-none"></div>
+    <div class="absolute -bottom-40 -right-40 w-96 h-96 bg-cyan-500/20 rounded-full blur-[140px] pointer-events-none"></div>
+
+    <div class="max-w-md w-full relative z-10">
+        
+        <!-- Header / Logo -->
+        <div class="text-center mb-8">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 via-cyan-600 to-indigo-600 flex items-center justify-center shadow-xl shadow-cyan-500/25 mx-auto mb-4 border border-white/20 p-3 hover:scale-105 transition-transform duration-300">
+                <img src="/static/img/logo-white.png" alt="Sentinel Lucca Logo" class="w-full h-full object-contain drop-shadow-md">
+            </div>
+            <h1 class="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
+                <span>Sentinel</span>
+                <span class="text-cyan-400 font-extrabold">Lucca</span>
+            </h1>
+            <p class="text-xs text-slate-400 mt-1.5">CFTV Sentinel & Print Sentinel • Central Unificada</p>
+        </div>
+
+        <!-- Login Card -->
+        <div class="glass-card rounded-2xl p-7 shadow-2xl shadow-black/60">
+            <div class="mb-6 text-center sm:text-left">
+                <h2 class="text-base font-semibold text-white">Acesse sua conta</h2>
+                <p class="text-xs text-slate-400 mt-0.5">Informe suas credenciais para acessar os módulos de monitoramento</p>
+            </div>
+
+            <!-- Error Banner -->
+            <div id="errorAlert" class="hidden mb-4 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs flex items-center gap-2.5 animate-shake">
+                <i data-lucide="alert-circle" class="w-4 h-4 flex-shrink-0"></i>
+                <span id="errorMessage">Usuário ou senha inválidos.</span>
+            </div>
+
+            <!-- Success Banner -->
+            <div id="successAlert" class="hidden mb-4 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs flex items-center gap-2.5">
+                <i data-lucide="check-circle" class="w-4 h-4 flex-shrink-0"></i>
+                <span id="successMessage">Login realizado! Carregando módulos...</span>
+            </div>
+
+            <!-- Login Form -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1.5">Usuário</label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="username" required autofocus placeholder="Digite seu usuário..." class="w-full bg-dark-950/70 border border-dark-600 rounded-xl pl-10 pr-4 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition text-xs">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1.5">Senha</label>
+                    <div class="relative">
+                        <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="password" id="password" required placeholder="Digite sua senha..." class="w-full bg-dark-950/70 border border-dark-600 rounded-xl pl-10 pr-10 py-2.5 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500 transition text-xs">
+                        <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1">
+                            <i data-lucide="eye" id="eyeIcon" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white font-semibold py-2.5 px-4 rounded-xl shadow-lg shadow-cyan-600/25 transition duration-150 flex items-center justify-center gap-2 mt-2 active:scale-98">
+                    <i data-lucide="log-in" class="w-4 h-4"></i>
+                    <span id="btnText">Entrar no Sistema</span>
+                </button>
+            </form>
+        </div>
+
+        <p class="text-center text-[11px] text-slate-500 mt-6">
+            Sentinel Lucca • TI Enterprise &copy; 2026
+        </p>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function togglePasswordVisibility() {
+            const pwdInput = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            if (pwdInput.type === 'password') {
+                pwdInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                pwdInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            }
+            lucide.createIcons();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            const submitBtn = document.getElementById('submitBtn');
+            const btnText = document.getElementById('btnText');
+            const errorAlert = document.getElementById('errorAlert');
+            const errorMessage = document.getElementById('errorMessage');
+            const successAlert = document.getElementById('successAlert');
+
+            errorAlert.classList.add('hidden');
+            submitBtn.disabled = true;
+            btnText.textContent = 'Autenticando...';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Erro ao efetuar login.');
+                }
+
+                // Armazenar token no LocalStorage para compatibilidade universal
+                localStorage.setItem('sentinel_token', data.token);
+                localStorage.setItem('cftv_token', data.token);
+                localStorage.setItem('print_token', data.token);
+                localStorage.setItem('sentinel_user', JSON.stringify(data.user));
+
+                successAlert.classList.remove('hidden');
+                btnText.textContent = 'Acesso Liberado!';
+
+                // Redirecionamento Inteligente de acordo com as permissões do usuário
+                const allowed = (data.user.allowed_modules || 'all').toLowerCase();
+                const role = data.user.role || 'operador';
+
+                setTimeout(() => {
+                    if (role === 'admin' || allowed === 'all') {
+                        // Acesso a todos os módulos -> Vai para a Central de Seleção (Hub)
+                        window.location.href = '/portal';
+                    } else if (allowed === 'cftv') {
+                        // Apenas CFTV Sentinel
+                        window.location.href = '/cftv/';
+                    } else if (allowed === 'printers') {
+                        // Apenas Print Sentinel
+                        window.location.href = '/printers/';
+                    } else {
+                        window.location.href = '/portal';
+                    }
+                }, 700);
+
+            } catch (err) {
+                errorMessage.textContent = err.message;
+                errorAlert.classList.remove('hidden');
+                submitBtn.disabled = false;
+                btnText.textContent = 'Entrar no Sistema';
+                lucide.createIcons();
+            }
+        }
+    </script>
+</body>
+</html>

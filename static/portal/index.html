@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Central de Módulos - Sentinel Lucca</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            950: '#060911',
+                            900: '#0b0f19',
+                            800: '#111827',
+                            700: '#1f2937',
+                            600: '#374151'
+                        },
+                        brand: {
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8'
+                        },
+                        cyanbrand: {
+                            400: '#22d3ee',
+                            500: '#06b6d4',
+                            600: '#0891b2'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/favicon.png">
+    <link rel="stylesheet" href="/static/portal/css/portal.css">
+</head>
+<body class="bg-dark-950 text-slate-100 min-h-screen antialiased flex flex-col relative selection:bg-cyan-500 selection:text-white">
+
+    <!-- Background glowing atmospheric lights -->
+    <div class="fixed -top-40 -left-40 w-[500px] h-[500px] bg-blue-600/15 rounded-full blur-[160px] pointer-events-none"></div>
+    <div class="fixed -bottom-40 -right-40 w-[500px] h-[500px] bg-cyan-500/15 rounded-full blur-[160px] pointer-events-none"></div>
+
+    <!-- Header Navigation Bar -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-white/5 py-3 px-4 sm:px-8">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-cyan-500/20 border border-white/10 p-2 hover:scale-105 transition-transform">
+                    <img src="/static/img/logo-white.png" alt="Sentinel Lucca" class="w-full h-full object-contain drop-shadow-sm">
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-base tracking-tight text-white">Sentinel</span>
+                        <span class="font-extrabold text-base text-cyan-400">Lucca</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-semibold uppercase tracking-wider hidden sm:inline-block">Portal Hub</span>
+                    </div>
+                    <p class="text-[11px] text-slate-400 hidden sm:block">Central de Monitoramento & Gestão TI</p>
+                </div>
+            </div>
+
+            <!-- Header Right Menu -->
+            <div class="flex items-center gap-4">
+                <!-- Clock -->
+                <div class="hidden md:flex items-center gap-2 text-xs text-slate-400 bg-dark-900/80 px-3 py-1.5 rounded-lg border border-white/5 font-mono">
+                    <i data-lucide="clock" class="w-3.5 h-3.5 text-cyan-400"></i>
+                    <span id="liveClock">--:--:--</span>
+                </div>
+
+                <!-- Admin Button (Exibido apenas para Admin) -->
+                <button id="adminPanelBtn" onclick="openAdminModal()" class="hidden items-center gap-2 bg-gradient-to-r from-blue-600/20 to-cyan-600/20 hover:from-blue-600/30 hover:to-cyan-600/30 text-cyan-300 border border-cyan-500/30 hover:border-cyan-500/50 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition">
+                    <i data-lucide="users-cog" class="w-4 h-4"></i>
+                    <span class="hidden sm:inline">Painel de Usuários & Admin</span>
+                    <span class="sm:hidden">Admin</span>
+                </button>
+
+                <!-- User Dropdown Menu -->
+                <div class="relative">
+                    <button onclick="toggleUserDropdown()" class="flex items-center gap-2.5 bg-dark-900/80 hover:bg-dark-800 border border-white/10 hover:border-white/20 p-1.5 pr-3 rounded-xl transition">
+                        <div class="w-7 h-7 rounded-lg bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow" id="userAvatar">
+                            U
+                        </div>
+                        <div class="text-left hidden sm:block">
+                            <div class="text-xs font-semibold text-slate-200 leading-tight" id="headerUserName">Carregando...</div>
+                            <div class="text-[10px] text-slate-400 leading-tight" id="headerUserRole">--</div>
+                        </div>
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400"></i>
+                    </button>
+
+                    <!-- Dropdown Content -->
+                    <div id="userDropdown" class="hidden absolute right-0 mt-2 w-56 glass-panel rounded-2xl shadow-2xl p-2 z-50 border border-white/10">
+                        <div class="px-3 py-2 border-b border-white/5 mb-1">
+                            <div class="text-xs font-semibold text-white" id="dropFullName">--</div>
+                            <div class="text-[11px] text-cyan-400 font-mono" id="dropUsername">@usuario</div>
+                            <div class="text-[10px] text-slate-400 mt-1" id="dropModules">Módulos: --</div>
+                        </div>
+                        <button onclick="openChangePasswordModal()" class="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-300 hover:text-white hover:bg-white/5 rounded-xl transition">
+                            <i data-lucide="key" class="w-4 h-4 text-slate-400"></i>
+                            <span>Alterar Senha</span>
+                        </button>
+                        <button onclick="handleLogout()" class="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl transition mt-1">
+                            <i data-lucide="log-out" class="w-4 h-4"></i>
+                            <span>Sair da Conta</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-8 py-8 sm:py-12 flex flex-col justify-center">
+
+        <!-- Welcome Banner -->
+        <div class="text-center max-w-2xl mx-auto mb-10">
+            <span class="text-xs font-semibold text-cyan-400 uppercase tracking-widest bg-cyan-500/10 border border-cyan-500/20 px-3 py-1 rounded-full inline-block mb-3">
+                Hub Central de Operações
+            </span>
+            <h1 class="text-2xl sm:text-4xl font-extrabold tracking-tight text-white">
+                Selecione o Projeto Desejado
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-400 mt-2">
+                Escolha abaixo o módulo que deseja gerenciar.
+            </p>
+        </div>
+
+        <!-- Modules Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8 max-w-5xl mx-auto w-full">
+            
+            <!-- CARD 1: CFTV SENTINEL -->
+            <div id="cftvCard" class="module-card cftv-hover rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-12 -top-12 w-44 h-44 bg-blue-600/10 rounded-full blur-2xl group-hover:bg-blue-600/20 transition duration-500 pointer-events-none"></div>
+
+                <div>
+                    <!-- Header do Card -->
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-600/30 border border-white/10 group-hover:scale-105 transition duration-300">
+                            <i data-lucide="video" class="w-7 h-7 text-white"></i>
+                        </div>
+                        <span id="cftvStatusBadge" class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            <span>Carregando...</span>
+                        </span>
+                    </div>
+
+                    <!-- Título e Descrição -->
+                    <h2 class="text-xl sm:text-2xl font-bold text-white group-hover:text-blue-400 transition">CFTV Sentinel</h2>
+                    <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                        Monitoramento de gravadores e câmeras de segurança com alertas e diagnóstico de HDs.
+                    </p>
+
+                    <!-- Métricas Rápidas -->
+                    <div class="grid grid-cols-3 gap-3 mt-6 mb-8 py-4 border-y border-white/5 bg-dark-950/40 rounded-2xl px-4">
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-slate-400">Total</div>
+                            <div class="text-lg font-extrabold text-white" id="cftvTotal">--</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-emerald-400">Online</div>
+                            <div class="text-lg font-extrabold text-emerald-400" id="cftvOnline">--</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-rose-400">Offline</div>
+                            <div class="text-lg font-extrabold text-rose-400" id="cftvOffline">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botão de Ação -->
+                <button id="cftvActionBtn" onclick="navigateTo('/cftv/')" class="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-3 px-5 rounded-2xl shadow-lg shadow-blue-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3">
+                    <span>Acessar CFTV Sentinel</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- CARD 2: PRINT SENTINEL -->
+            <div id="printersCard" class="module-card print-hover rounded-3xl p-6 sm:p-8 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-12 -top-12 w-44 h-44 bg-cyan-600/10 rounded-full blur-2xl group-hover:bg-cyan-600/20 transition duration-500 pointer-events-none"></div>
+
+                <div>
+                    <!-- Header do Card -->
+                    <div class="flex items-start justify-between mb-6">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-teal-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 border border-white/10 group-hover:scale-105 transition duration-300">
+                            <i data-lucide="printer" class="w-7 h-7 text-white"></i>
+                        </div>
+                        <span id="printersStatusBadge" class="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center gap-1.5">
+                            <span class="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                            <span>Carregando...</span>
+                        </span>
+                    </div>
+
+                    <!-- Título e Descrição -->
+                    <h2 class="text-xl sm:text-2xl font-bold text-white group-hover:text-cyan-400 transition">Print Sentinel</h2>
+                    <p class="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                        Gestão de impressoras em rede por filiais com disparo de testes de impressão.
+                    </p>
+
+                    <!-- Métricas Rápidas -->
+                    <div class="grid grid-cols-3 gap-3 mt-6 mb-8 py-4 border-y border-white/5 bg-dark-950/40 rounded-2xl px-4">
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-slate-400">Total</div>
+                            <div class="text-lg font-extrabold text-white" id="printersTotal">--</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-cyan-400">Online</div>
+                            <div class="text-lg font-extrabold text-cyan-400" id="printersOnline">--</div>
+                        </div>
+                        <div>
+                            <div class="text-[10px] uppercase font-semibold text-slate-400">Filiais</div>
+                            <div class="text-lg font-extrabold text-slate-200" id="printersBranches">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botão de Ação -->
+                <button id="printersActionBtn" onclick="navigateTo('/printers/')" class="w-full bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white font-semibold py-3 px-5 rounded-2xl shadow-lg shadow-cyan-600/30 transition flex items-center justify-center gap-2 group-hover:gap-3">
+                    <span>Acessar Print Sentinel</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="py-6 border-t border-white/5 text-center text-xs text-slate-500">
+        <p>Sentinel Lucca • Sistema Unificado de Monitoramento TI &copy; 2026</p>
+    </footer>
+
+    <!-- ==================== MODAL DE ADMINISTRAÇÃO ==================== -->
+    <div id="adminModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-5xl rounded-3xl p-6 sm:p-8 max-h-[90vh] flex flex-col shadow-2xl border border-white/10">
+            
+            <!-- Header do Modal -->
+            <div class="flex items-center justify-between pb-5 border-b border-white/10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                        <i data-lucide="users-cog" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Painel de Administração</h2>
+                        <p class="text-xs text-slate-400">Gerenciamento de usuários, permissões por módulo e auditoria</p>
+                    </div>
+                </div>
+                <button onclick="closeAdminModal()" class="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Abas do Admin -->
+            <div class="flex items-center gap-2 mt-4 border-b border-white/10 pb-3">
+                <button onclick="switchAdminTab('users')" id="tabBtnUsers" class="px-4 py-2 rounded-xl text-xs font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition">
+                    Usuários & Módulos
+                </button>
+                <button onclick="switchAdminTab('audit')" id="tabBtnAudit" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition">
+                    Logs de Auditoria
+                </button>
+                <button onclick="switchAdminTab('backup')" id="tabBtnBackup" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition">
+                    Backup do Sistema
+                </button>
+            </div>
+
+            <!-- Conteúdo da Aba 1: Usuários -->
+            <div id="tabContentUsers" class="flex-1 overflow-y-auto mt-4 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-white">Colaboradores Cadastrados</h3>
+                    <button onclick="openUserCreateModal()" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs py-2 px-3.5 rounded-xl shadow transition flex items-center gap-2">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                        <span>Novo Usuário</span>
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto rounded-2xl border border-white/10">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-dark-900/90 text-slate-400 text-[11px] uppercase border-b border-white/5">
+                            <tr>
+                                <th class="py-3 px-4">Nome Completo</th>
+                                <th class="py-3 px-4">Usuário</th>
+                                <th class="py-3 px-4">Perfil</th>
+                                <th class="py-3 px-4 text-cyan-400 font-bold">Módulos Permitidos</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody" class="divide-y divide-white/5">
+                            <!-- Inserido dinamicamente via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Conteúdo da Aba 2: Auditoria -->
+            <div id="tabContentAudit" class="flex-1 overflow-y-auto mt-4 space-y-4 hidden">
+                <div class="flex items-center justify-between gap-4">
+                    <div class="relative flex-1 max-w-sm">
+                        <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="auditSearchInput" oninput="loadAuditLogs()" placeholder="Buscar por usuário, ação, IP..." class="w-full bg-dark-950/70 border border-dark-600 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                    </div>
+                    <a href="/api/admin/audit-logs/export" class="bg-dark-800 hover:bg-dark-700 text-slate-200 border border-white/10 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Exportar CSV</span>
+                    </a>
+                </div>
+
+                <div class="overflow-x-auto rounded-2xl border border-white/10">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-dark-900/90 text-slate-400 text-[11px] uppercase border-b border-white/5">
+                            <tr>
+                                <th class="py-3 px-4">Data / Hora</th>
+                                <th class="py-3 px-4">Usuário</th>
+                                <th class="py-3 px-4">Ação</th>
+                                <th class="py-3 px-4">Detalhes</th>
+                                <th class="py-3 px-4">IP</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditTableBody" class="divide-y divide-white/5 font-mono text-[11px]">
+                            <!-- Inserido dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Conteúdo da Aba 3: Backup -->
+            <div id="tabContentBackup" class="flex-1 overflow-y-auto mt-4 space-y-4 hidden">
+                <div class="bg-dark-900/60 border border-white/10 rounded-2xl p-6 text-center max-w-lg mx-auto my-8">
+                    <div class="w-14 h-14 rounded-2xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center mx-auto mb-4 border border-cyan-500/30">
+                        <i data-lucide="database" class="w-7 h-7"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-white">Backup do Banco de Dados SQLite Unificado</h3>
+                    <p class="text-xs text-slate-400 mt-2 mb-6">
+                        Faça o download de uma cópia consistente online contendo todos os gravadores, impressoras, usuários, senhas e logs de auditoria.
+                    </p>
+                    <a href="/api/admin/backup/download" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold py-2.5 px-6 rounded-xl text-xs shadow-lg shadow-cyan-500/25 inline-flex items-center gap-2 transition">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>Baixar Backup Agora (.db)</span>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ==================== MODAL DE CRIAR / EDITAR USUÁRIO ==================== -->
+    <div id="userFormModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-md rounded-3xl p-6 shadow-2xl border border-white/10">
+            <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
+                <h3 class="text-base font-bold text-white" id="userModalTitle">Novo Usuário</h3>
+                <button onclick="closeUserFormModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form id="userForm" onsubmit="saveUser(event)" class="space-y-4 text-xs">
+                <input type="hidden" id="editUserId">
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Nome Completo</label>
+                    <input type="text" id="formFullName" required placeholder="Ex: Lucas Silva" class="w-full bg-dark-950/70 border border-dark-600 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                </div>
+
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Usuário de Login</label>
+                    <input type="text" id="formUsername" required placeholder="Ex: lucas.silva" class="w-full bg-dark-950/70 border border-dark-600 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                </div>
+
+                <div id="pwdGroup">
+                    <label class="block font-medium text-slate-300 mb-1">Senha de Acesso</label>
+                    <input type="password" id="formPassword" placeholder="Mínimo 4 caracteres" class="w-full bg-dark-950/70 border border-dark-600 rounded-xl px-3 py-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-cyan-500">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Perfil de Cargo</label>
+                        <select id="formRole" class="w-full bg-dark-950/70 border border-dark-600 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
+                            <option value="operador">Operador</option>
+                            <option value="visualizador">Visualizador</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block font-medium text-slate-300 mb-1">Status</label>
+                        <select id="formActive" class="w-full bg-dark-950/70 border border-dark-600 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
+                            <option value="1">Ativo</option>
+                            <option value="0">Desativado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- CONTROLE DE ACESSO POR MÓDULO (REQUISITO FUNDAMENTAL) -->
+                <div class="p-3.5 rounded-2xl bg-cyan-500/10 border border-cyan-500/20">
+                    <label class="block font-bold text-cyan-400 mb-1">Acesso aos Módulos</label>
+                    <p class="text-[11px] text-slate-300 mb-2">Defina se este colaborador terá acesso a apenas um módulo ou a todos:</p>
+                    <select id="formAllowedModules" class="w-full bg-dark-950 border border-cyan-500/40 rounded-xl px-3 py-2.5 text-white font-medium focus:outline-none focus:border-cyan-400 text-xs">
+                        <option value="all">🌟 Todos os Módulos (CFTV + Impressoras)</option>
+                        <option value="cftv">📹 Apenas CFTV Sentinel (Gravadores / Câmeras)</option>
+                        <option value="printers">🖨️ Apenas Print Sentinel (Impressoras em Rede)</option>
+                    </select>
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-white/10">
+                    <button type="button" onclick="closeUserFormModal()" class="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition">Cancelar</button>
+                    <button type="submit" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs py-2 px-4 rounded-xl shadow transition">Salvar Usuário</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL DE ALTERAR SENHA ==================== -->
+    <div id="changePwdModal" class="fixed inset-0 z-50 modal-backdrop hidden items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-sm rounded-3xl p-6 shadow-2xl border border-white/10">
+            <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+                <h3 class="text-base font-bold text-white">Alterar Minha Senha</h3>
+                <button onclick="closeChangePasswordModal()" class="text-slate-400 hover:text-white">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <form onsubmit="handleChangePassword(event)" class="space-y-4 text-xs">
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Senha Atual</label>
+                    <input type="password" id="currentPwd" required class="w-full bg-dark-950/70 border border-dark-600 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div>
+                    <label class="block font-medium text-slate-300 mb-1">Nova Senha</label>
+                    <input type="password" id="newPwd" required minlength="4" class="w-full bg-dark-950/70 border border-dark-600 rounded-xl px-3 py-2 text-slate-100 focus:outline-none focus:border-cyan-500">
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-2">
+                    <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white">Cancelar</button>
+                    <button type="submit" class="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs py-2 px-4 rounded-xl shadow">Atualizar Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/portal/js/portal.js"></script>
+</body>
+</html>
