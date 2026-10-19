@@ -631,23 +631,11 @@ function renderItemsTable() {
             <td class="py-3 px-4 font-sans text-slate-300">${escapeHtml(it.origin_branch || 'Matriz')}</td>
             <td class="py-3 px-4 text-cyan-400 font-semibold">${formatCurrency(it.estimated_value)}</td>
             <td class="py-3 px-4 font-sans">${getItemStatusBadge(it.status)}</td>
-            <td class="py-3 px-4 text-center font-sans">
-                ${count > 0 ? `
-                    <button onclick="openItemHistoryModal(${it.id})" title="Ver histórico completo de manutenções (${count} envio${count > 1 ? 's' : ''})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-black transition shadow-sm">
-                        <i data-lucide="history" class="w-3.5 h-3.5"></i>
-                        <span>${count}x enviado${count > 1 ? 's' : ''}</span>
-                    </button>
-                ` : `
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-slate-500 bg-dark-800 border border-dark-700">
-                        <span>Nunca enviado</span>
-                    </span>
-                `}
-            </td>
             <td class="py-3 px-4 text-right font-sans">
                 <div class="flex items-center justify-end gap-1.5">
                     <button onclick="openItemHistoryModal(${it.id})" title="Ver Histórico de Envios e Retornos" class="p-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
                         <i data-lucide="history" class="w-3.5 h-3.5"></i>
-                        <span class="hidden xl:inline">Histórico</span>
+                        <span class="inline">Histórico</span>
                     </button>
                     <button onclick="editItem(${it.id})" title="Editar Equipamento" class="p-1.5 rounded-lg bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white transition">
                         <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
