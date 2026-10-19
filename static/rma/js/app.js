@@ -617,7 +617,9 @@ function renderItemsTable() {
     }
 
     empty.classList.add('hidden');
-    tbody.innerHTML = items.map(it => `
+    tbody.innerHTML = items.map(it => {
+        const count = it.repair_count || 0;
+        return `
         <tr class="hover:bg-dark-700/40 transition">
             <td class="py-3 px-4 font-bold text-white select-all">${it.patrimony_number}</td>
             <td class="py-3 px-4 font-sans font-semibold text-slate-200">
@@ -629,8 +631,24 @@ function renderItemsTable() {
             <td class="py-3 px-4 font-sans text-slate-300">${escapeHtml(it.origin_branch || 'Matriz')}</td>
             <td class="py-3 px-4 text-cyan-400 font-semibold">${formatCurrency(it.estimated_value)}</td>
             <td class="py-3 px-4 font-sans">${getItemStatusBadge(it.status)}</td>
+            <td class="py-3 px-4 text-center font-sans">
+                ${count > 0 ? `
+                    <button onclick="openItemHistoryModal(${it.id})" title="Ver histórico completo de manutenções (${count} envio${count > 1 ? 's' : ''})" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/15 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-black transition shadow-sm">
+                        <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                        <span>${count}x enviado${count > 1 ? 's' : ''}</span>
+                    </button>
+                ` : `
+                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium text-slate-500 bg-dark-800 border border-dark-700">
+                        <span>Nunca enviado</span>
+                    </span>
+                `}
+            </td>
             <td class="py-3 px-4 text-right font-sans">
-                <div class="flex items-center justify-end gap-1">
+                <div class="flex items-center justify-end gap-1.5">
+                    <button onclick="openItemHistoryModal(${it.id})" title="Ver Histórico de Envios e Retornos" class="p-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white transition flex items-center gap-1 text-xs font-semibold">
+                        <i data-lucide="history" class="w-3.5 h-3.5"></i>
+                        <span class="hidden xl:inline">Histórico</span>
+                    </button>
                     <button onclick="editItem(${it.id})" title="Editar Equipamento" class="p-1.5 rounded-lg bg-dark-700 hover:bg-dark-600 text-slate-300 hover:text-white transition">
                         <i data-lucide="edit-2" class="w-3.5 h-3.5"></i>
                     </button>
@@ -640,9 +658,178 @@ function renderItemsTable() {
                 </div>
             </td>
         </tr>
-    `).join('');
+    `}).join('');
 
     lucide.createIcons();
+}
+
+// ==================== MODAL: HISTÓRICO DE MANUTENÇÃO ====================
+
+async function openItemHistoryModal(itemId) {
+    const item = items.find(i => i.id === itemId);
+    const titleEl = document.getElementById('histItemTitle');
+    const subEl = document.getElementById('histItemSubtitle');
+    const badgeEl = document.getElementById('histItemCountBadge');
+    const totalEl = document.getElementById('histTotalRepairs');
+    const lastSentEl = document.getElementById('histLastSent');
+    const lastSentNfEl = document.getElementById('histLastSentNf');
+    const lastRetEl = document.getElementById('histLastReturned');
+    const lastRetNfEl = document.getElementById('histLastReturnedNf');
+    const container = document.getElementById('histTimelineContainer');
+    const emptyEl = document.getElementById('histEmptyContainer');
+
+    titleEl.textContent = item ? `Histórico de Manutenções: ${item.description}` : 'Histórico de Manutenções';
+    subEl.textContent = item ? `Patrimônio: ${item.patrimony_number} | NS: ${item.serial_number || '-'} | Filial: ${item.origin_branch}` : '';
+    badgeEl.textContent = 'Carregando...';
+    container.innerHTML = '<div class="py-8 text-center text-slate-400 text-xs">Carregando histórico do equipamento...</div>';
+    emptyEl.classList.add('hidden');
+
+    openModal('modalItemHistory');
+
+    try {
+        const res = await fetch(`/api/rma/items/${itemId}/history`, {
+            headers: getAuthHeaders(false)
+        });
+
+        if (!res.ok) {
+            container.innerHTML = '<div class="py-8 text-center text-rose-400 text-xs">Não foi possível carregar o histórico.</div>';
+            return;
+        }
+
+        const data = await res.json();
+        const histItem = data.item;
+        const history = data.history || [];
+        const total = history.length;
+
+        badgeEl.textContent = `${total} ${total === 1 ? 'envio' : 'envios'}`;
+        totalEl.textContent = total;
+
+        if (total === 0) {
+            lastSentEl.textContent = 'Nenhuma';
+            lastSentNfEl.textContent = 'Nunca enviado';
+            lastRetEl.textContent = 'Nenhum';
+            lastRetNfEl.textContent = 'Nunca retornado';
+            container.innerHTML = '';
+            emptyEl.classList.remove('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
+
+            const mostRecent = history[0];
+            const lastSentDate = mostRecent.invoice_out_date || mostRecent.request_created_at?.split(' ')[0] || '-';
+            lastSentEl.textContent = lastSentDate;
+            lastSentNfEl.textContent = mostRecent.invoice_out ? `NF Saída: ${mostRecent.invoice_out}` : 'NF Saída: Pendente';
+
+            const returnedItem = history.find(h => h.invoice_in || h.invoice_in_date || h.request_status === 'retornado');
+            if (returnedItem && (returnedItem.invoice_in_date || returnedItem.invoice_in)) {
+                lastRetEl.textContent = returnedItem.invoice_in_date || '-';
+                lastRetNfEl.textContent = returnedItem.invoice_in ? `NF Retorno: ${returnedItem.invoice_in}` : 'Retornado';
+            } else if (mostRecent.request_status === 'em_conserto' || mostRecent.request_status === 'em_transito' || mostRecent.request_status === 'aguardando_nf') {
+                lastRetEl.textContent = 'Em aberto';
+                lastRetNfEl.textContent = 'Ainda na assistência / trânsito';
+            } else {
+                lastRetEl.textContent = 'Não informado';
+                lastRetNfEl.textContent = '-';
+            }
+
+            container.innerHTML = history.map((h, idx) => {
+                const envioNum = total - idx;
+                const isReturned = h.request_status === 'retornado' || Boolean(h.invoice_in);
+                const isOngoing = h.request_status === 'em_conserto' || h.request_status === 'em_transito';
+                const hasOutNf = Boolean(h.invoice_out);
+
+                let statusBadge = '';
+                if (isReturned) {
+                    statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Retornado</span>';
+                } else if (isOngoing) {
+                    statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-orange-500/15 text-orange-300 border border-orange-500/30 flex items-center gap-1"><i data-lucide="wrench" class="w-3 h-3"></i> Em Manutenção</span>';
+                } else if (h.request_status === 'cancelado') {
+                    statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">Cancelado</span>';
+                } else {
+                    statusBadge = '<span class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">Aguardando NF</span>';
+                }
+
+                const sentDate = h.invoice_out_date || h.request_created_at?.split(' ')[0] || '-';
+                const returnDate = h.invoice_in_date || (isReturned ? 'Retornado (sem data)' : 'Aguardando retorno');
+
+                return `
+                    <div class="p-4 rounded-xl bg-dark-900 border ${isReturned ? 'border-emerald-500/30 bg-emerald-500/[0.02]' : (isOngoing ? 'border-orange-500/40 bg-orange-500/[0.03]' : 'border-dark-700')} transition hover:border-dark-600 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-dark-700/60 pb-2.5">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded text-[11px] font-extrabold bg-dark-700 text-amber-400 border border-dark-600">${envioNum}º Envio</span>
+                                <span class="font-mono font-bold text-white text-xs">${h.request_number}</span>
+                                ${statusBadge}
+                            </div>
+                            <div class="text-xs text-slate-300 font-sans flex items-center gap-2">
+                                <span class="text-slate-400">Destino:</span>
+                                <strong class="text-slate-100">${escapeHtml(h.provider_trade_name || h.provider_name || 'Terceirizada')}</strong>
+                                <button onclick="printRequest(${h.request_id})" title="Imprimir folha desta solicitação" class="p-1 rounded bg-dark-800 hover:bg-cyan-600 text-cyan-400 hover:text-white transition ml-1 text-[11px] flex items-center gap-1 font-sans">
+                                    <i data-lucide="printer" class="w-3 h-3"></i>
+                                    <span>Ver Folha A4</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Grid de Saída e Retorno -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs font-sans">
+                            <!-- QUANDO FOI (Saída) -->
+                            <div class="p-2.5 rounded-lg bg-dark-800/80 border border-dark-700/60 space-y-1.5">
+                                <div class="text-[11px] font-bold text-cyan-400 flex items-center gap-1">
+                                    <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                                    <span>QUANDO FOI (Saída para Conserto)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-300 font-mono text-[11px]">
+                                    <span class="text-slate-400 font-sans">Data de Saída:</span>
+                                    <strong class="text-slate-100">${sentDate}</strong>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-300 font-mono text-[11px]">
+                                    <span class="text-slate-400 font-sans">NF de Saída:</span>
+                                    <span class="${hasOutNf ? 'text-amber-300 font-bold' : 'text-slate-500'}">${h.invoice_out || 'Pendente de emissão'}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-300 text-[11px]">
+                                    <span class="text-slate-400">Transportadora:</span>
+                                    <span class="truncate max-w-[180px] font-mono text-slate-300">${escapeHtml(h.carrier_name || 'Entrega Direta')}</span>
+                                </div>
+                            </div>
+
+                            <!-- QUANDO RETORNOU (Retorno) -->
+                            <div class="p-2.5 rounded-lg bg-dark-800/80 border border-dark-700/60 space-y-1.5">
+                                <div class="text-[11px] font-bold ${isReturned ? 'text-emerald-400' : 'text-slate-400'} flex items-center gap-1">
+                                    <i data-lucide="arrow-down-left" class="w-3.5 h-3.5"></i>
+                                    <span>QUANDO RETORNOU (Retorno à Empresa)</span>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-300 font-mono text-[11px]">
+                                    <span class="text-slate-400 font-sans">Data de Retorno:</span>
+                                    <strong class="${isReturned ? 'text-emerald-300' : 'text-amber-400'}">${returnDate}</strong>
+                                </div>
+                                <div class="flex items-center justify-between text-slate-300 font-mono text-[11px]">
+                                    <span class="text-slate-400 font-sans">NF de Retorno:</span>
+                                    <span class="${h.invoice_in ? 'text-emerald-300 font-bold' : 'text-slate-500'}">${h.invoice_in || (isReturned ? 'Sem NF informada' : 'Ainda na assistência')}</span>
+                                </div>
+                                ${h.repair_cost ? `
+                                <div class="flex items-center justify-between text-slate-300 text-[11px]">
+                                    <span class="text-slate-400">Custo do Conserto:</span>
+                                    <span class="font-bold text-slate-200">${formatCurrency(h.repair_cost)}</span>
+                                </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        ${h.defect_notes || h.justification_notes ? `
+                        <div class="text-[11px] text-slate-400 font-sans bg-dark-800/40 p-2 rounded-lg border border-dark-700/40">
+                            ${h.defect_notes ? `<span class="text-rose-400/90 font-medium">Defeito relatado:</span> ${escapeHtml(h.defect_notes)} &bull; ` : ''}
+                            ${h.justification_notes ? `<span class="text-slate-300 font-medium">Obs:</span> ${escapeHtml(h.justification_notes)}` : ''}
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        lucide.createIcons();
+    } catch(err) {
+        console.error('Erro ao buscar histórico:', err);
+        container.innerHTML = '<div class="py-8 text-center text-rose-400 text-xs">Erro ao conectar com o servidor.</div>';
+    }
 }
 
 function openItemModal(itemId = null) {

@@ -301,6 +301,7 @@
                                 <th class="py-3.5 px-4">Filial / Origem</th>
                                 <th class="py-3.5 px-4">Valor Contábil</th>
                                 <th class="py-3.5 px-4">Status</th>
+                                <th class="py-3.5 px-4 text-center">Consertos / Envios</th>
                                 <th class="py-3.5 px-4 text-right">Ações</th>
                             </tr>
                         </thead>
@@ -691,7 +692,76 @@
         </div>
     </div>
 
+    <!-- ==================== MODAL: HISTÓRICO DE MANUTENÇÃO DO EQUIPAMENTO ==================== -->
+    <div id="modalItemHistory" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-dark-800 border border-dark-700 rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-6 space-y-5">
+            <!-- Barra Superior do Modal -->
+            <div class="flex items-center justify-between border-b border-dark-700 pb-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                        <i data-lucide="history" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2.5 flex-wrap">
+                            <h3 class="text-base font-bold text-white" id="histItemTitle">Histórico de Manutenções</h3>
+                            <span id="histItemCountBadge" class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40">0 envios</span>
+                        </div>
+                        <p class="text-xs text-slate-400 font-mono mt-0.5" id="histItemSubtitle">Patrimônio: - | NS: -</p>
+                    </div>
+                </div>
+                <button onclick="closeModal('modalItemHistory')" class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-dark-700">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Resumo em Cards / Indicadores -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="p-3.5 rounded-xl bg-dark-900/80 border border-dark-700/60">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total de Envios</div>
+                    <div class="text-xl font-extrabold text-amber-400 mt-1" id="histTotalRepairs">0</div>
+                    <div class="text-[10px] text-slate-500 mt-0.5">Vezes encaminhado p/ conserto</div>
+                </div>
+                <div class="p-3.5 rounded-xl bg-dark-900/80 border border-dark-700/60">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Última Saída</div>
+                    <div class="text-sm font-bold text-slate-200 mt-1 truncate" id="histLastSent">Nenhuma</div>
+                    <div class="text-[10px] text-slate-500 mt-0.5 font-mono" id="histLastSentNf">NF de saída não emitida</div>
+                </div>
+                <div class="p-3.5 rounded-xl bg-dark-900/80 border border-dark-700/60">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Último Retorno</div>
+                    <div class="text-sm font-bold text-slate-200 mt-1 truncate" id="histLastReturned">Nenhum</div>
+                    <div class="text-[10px] text-slate-500 mt-0.5 font-mono" id="histLastReturnedNf">NF de retorno não informada</div>
+                </div>
+            </div>
+
+            <!-- Linha do Tempo / Lista de Cada Manutenção -->
+            <div class="space-y-3">
+                <div class="flex items-center justify-between border-b border-dark-700/80 pb-2">
+                    <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                        <i data-lucide="git-commit" class="w-3.5 h-3.5 text-cyan-400"></i>
+                        <span>Linha do Tempo de Envios & Retornos</span>
+                    </h4>
+                    <span class="text-slate-500 text-[11px] font-sans">Ordem cronológica reversa</span>
+                </div>
+
+                <div id="histTimelineContainer" class="space-y-3">
+                    <!-- Cards de cada envio injetados dinamicamente via JS -->
+                </div>
+
+                <div id="histEmptyContainer" class="hidden py-10 text-center text-slate-400 text-xs bg-dark-900/40 rounded-xl border border-dark-700/50">
+                    <i data-lucide="check-circle-2" class="w-10 h-10 mx-auto text-emerald-400/70 mb-2"></i>
+                    <p class="font-bold text-slate-200 text-sm">Este equipamento nunca precisou de conserto.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Quando for vinculado a uma solicitação de conserto, todas as datas de saída e retorno ficarão registradas aqui.</p>
+                </div>
+            </div>
+
+            <!-- Rodapé -->
+            <div class="pt-3 border-t border-dark-700 flex justify-end">
+                <button type="button" onclick="closeModal('modalItemHistory')" class="px-5 py-2 rounded-xl bg-dark-700 hover:bg-dark-600 text-slate-200 text-xs font-semibold">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts da Aplicação -->
-    <script src="/static/rma/js/app.js?v=2.3"></script>
+    <script src="/static/rma/js/app.js?v=2.4"></script>
 </body>
 </html>

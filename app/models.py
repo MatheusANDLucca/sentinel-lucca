@@ -330,8 +330,35 @@ class RmaItemUpdate(BaseModel):
 class RmaItemOut(RmaItemBase):
     id: int
     current_request_id: Optional[int] = None
+    repair_count: int = 0
+    last_sent_date: Optional[str] = None
+    last_return_date: Optional[str] = None
     created_at: str
     updated_at: str
+
+class RmaItemHistoryEntry(BaseModel):
+    request_id: int
+    request_number: str
+    request_status: str
+    request_created_at: str
+    subject_type: str
+    invoice_out: Optional[str] = ""
+    invoice_out_date: Optional[str] = None
+    invoice_in: Optional[str] = ""
+    invoice_in_date: Optional[str] = None
+    repair_cost: Optional[float] = 0.0
+    provider_name: Optional[str] = ""
+    provider_trade_name: Optional[str] = ""
+    provider_phone: Optional[str] = ""
+    carrier_name: Optional[str] = ""
+    defect_notes: Optional[str] = ""
+    justification_notes: Optional[str] = ""
+    item_linked_at: str
+
+class RmaItemHistoryOut(BaseModel):
+    item: RmaItemOut
+    total_repairs: int
+    history: List[RmaItemHistoryEntry]
 
 class RmaRequestCreate(BaseModel):
     sender_name: str = Field(default="CLENIO MARCOS", max_length=100)

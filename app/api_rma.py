@@ -8,7 +8,7 @@ from app.database import get_db_connection
 from app.models import (
     RmaProviderCreate, RmaProviderUpdate, RmaProviderOut,
     RmaCarrierCreate, RmaCarrierUpdate, RmaCarrierOut,
-    RmaItemCreate, RmaItemUpdate, RmaItemOut,
+    RmaItemCreate, RmaItemUpdate, RmaItemOut, RmaItemHistoryOut, RmaItemHistoryEntry,
     RmaRequestCreate, RmaRequestUpdate, RmaRequestOut, RmaRequestItemOut,
     RmaDashboardMetrics
 )
@@ -297,29 +297,39 @@ async def list_items(
     search: Optional[str] = Query(None, description="Busca por patrimônio, serial, código ou descrição"),
     status: Optional[str] = Query(None, description="Filtrar por status: na_ti, aguardando_nf, em_conserto, retornado"),
     branch: Optional[str] = Query(None, description="Filtrar por filial de origem"),
-    available_only: bool = Query(False, description="Apenas itens disponíveis para vincular a nova solicitação (status na_ti)"),
+    available_only: bool = Query(False, description="Apenas itens disponíveis para vincular a nova solicitação (status na_ti ou retornado)"),
     current_user: dict = Depends(get_current_user)
 ):
-    """Lista todos os itens em manutenção ou recebidos."""
-    query = "SELECT * FROM rma_items WHERE is_active = 1"
+    """Lista todos os itens em manutenção ou recebidos, com métricas de histórico de consertos."""
+    query = """
+        SELECT 
+            i.*,
+            COUNT(DISTINCT CASE WHEN r.status != 'cancelado' THEN r.id END) AS repair_count,
+            MAX(CASE WHEN r.status != 'cancelado' THEN COALESCE(NULLIF(r.invoice_out_date, ''), r.created_at) END) AS last_sent_date,
+            MAX(CASE WHEN r.status != 'cancelado' THEN NULLIF(r.invoice_in_date, '') END) AS last_return_date
+        FROM rma_items i
+        LEFT JOIN rma_request_items ri ON ri.item_id = i.id
+        LEFT JOIN rma_requests r ON r.id = ri.request_id
+        WHERE i.is_active = 1
+    """
     params = []
 
     if available_only:
-        query += " AND status = 'na_ti'"
+        query += " AND i.status IN ('na_ti', 'retornado')"
     elif status and status != "all":
-        query += " AND status = ?"
+        query += " AND i.status = ?"
         params.append(status)
 
     if branch and branch != "all":
-        query += " AND origin_branch = ?"
+        query += " AND i.origin_branch = ?"
         params.append(branch)
 
     if search:
         s = f"%{search.strip()}%"
-        query += " AND (patrimony_number LIKE ? OR serial_number LIKE ? OR item_code LIKE ? OR description LIKE ? OR brand LIKE ?)"
+        query += " AND (i.patrimony_number LIKE ? OR i.serial_number LIKE ? OR i.item_code LIKE ? OR i.description LIKE ? OR i.brand LIKE ?)"
         params.extend([s, s, s, s, s])
 
-    query += " ORDER BY id DESC"
+    query += " GROUP BY i.id ORDER BY i.id DESC"
 
     async with get_db_connection() as db:
         cursor = await db.execute(query, params)
@@ -465,6 +475,70 @@ async def delete_item(
     })
 
     return {"message": "Item excluído com sucesso."}
+
+@router.get("/items/{item_id}/history", response_model=RmaItemHistoryOut)
+async def get_item_history(
+    item_id: int,
+    current_user: dict = Depends(get_current_user)
+):
+    """Retorna o histórico detalhado de todas as vezes que o equipamento foi enviado e retornou de manutenção."""
+    async with get_db_connection() as db:
+        c_item = await db.execute(
+            """
+            SELECT 
+                i.*,
+                COUNT(DISTINCT CASE WHEN r.status != 'cancelado' THEN r.id END) AS repair_count,
+                MAX(CASE WHEN r.status != 'cancelado' THEN COALESCE(NULLIF(r.invoice_out_date, ''), r.created_at) END) AS last_sent_date,
+                MAX(CASE WHEN r.status != 'cancelado' THEN NULLIF(r.invoice_in_date, '') END) AS last_return_date
+            FROM rma_items i
+            LEFT JOIN rma_request_items ri ON ri.item_id = i.id
+            LEFT JOIN rma_requests r ON r.id = ri.request_id
+            WHERE i.id = ?
+            GROUP BY i.id
+            """,
+            (item_id,)
+        )
+        item_row = await c_item.fetchone()
+        if not item_row:
+            raise HTTPException(status_code=404, detail="Equipamento não encontrado.")
+
+        c_hist = await db.execute(
+            """
+            SELECT 
+                r.id AS request_id,
+                r.request_number,
+                r.status AS request_status,
+                r.created_at AS request_created_at,
+                r.subject_type,
+                COALESCE(r.invoice_out, '') AS invoice_out,
+                r.invoice_out_date,
+                COALESCE(r.invoice_in, '') AS invoice_in,
+                r.invoice_in_date,
+                COALESCE(r.repair_cost, 0.0) AS repair_cost,
+                COALESCE(p.name, '') AS provider_name,
+                COALESCE(p.trade_name, '') AS provider_trade_name,
+                COALESCE(p.phone, '') AS provider_phone,
+                COALESCE(c.name, '') AS carrier_name,
+                COALESCE(ri.defect_notes, '') AS defect_notes,
+                COALESCE(r.justification_notes, '') AS justification_notes,
+                ri.created_at AS item_linked_at
+            FROM rma_request_items ri
+            JOIN rma_requests r ON r.id = ri.request_id
+            LEFT JOIN rma_providers p ON p.id = r.provider_id
+            LEFT JOIN rma_carriers c ON c.id = r.carrier_id
+            WHERE ri.item_id = ?
+            ORDER BY r.id DESC
+            """,
+            (item_id,)
+        )
+        hist_rows = await c_hist.fetchall()
+        history_list = [dict(hr) for hr in hist_rows]
+
+        return {
+            "item": dict(item_row),
+            "total_repairs": len(history_list),
+            "history": history_list
+        }
 
 # ==================== SOLICITAÇÕES DE CONTROLE PATRIMONIAL ====================
 
