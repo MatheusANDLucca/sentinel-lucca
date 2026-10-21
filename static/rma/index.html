@@ -37,24 +37,24 @@
             }
         }
     </script>
-    <!-- Google Fonts Inter -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Design System Unificado & Fontes -->
+    <link rel="stylesheet" href="/static/css/design-system.css">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/img/favicon.png">
     <style>
-        body { font-family: 'Inter', sans-serif; }
         .glass-panel {
-            background: rgba(17, 24, 39, 0.75);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: linear-gradient(180deg, rgba(16, 23, 38, 0.78) 0%, rgba(10, 14, 23, 0.9) 100%);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 10px 25px -10px rgba(0, 0, 0, 0.5);
         }
         .active-tab {
             color: #38bdf8 !important;
             border-bottom: 2px solid #38bdf8 !important;
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.4);
         }
     </style>
 </head>
